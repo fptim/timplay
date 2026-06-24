@@ -10,8 +10,12 @@ source of truth — `project.json` in a per-product folder — so each stage bui
 
 ## Output language
 
-Generate all document text and HTML UI labels in the **language of the user's input** (Korean
-input → Korean output). Store it in `meta.language` and stay consistent across every stage.
+Generate all **document content** (PRD prose, feature/spec/flow/screen text the user authors)
+in the **language of the user's input** (Korean input → Korean output). Store it in `meta.language`
+and stay consistent across stages. Note: the HTML pages' **UI chrome** (buttons, headers, hints,
+dialogs) is currently hardcoded Korean in the templates — so a non-Korean project gets
+Korean-language content inside a Korean UI shell. Templatizing the chrome by `meta.language` is a
+known follow-up; don't claim the UI auto-localizes.
 
 ## Project workspace
 

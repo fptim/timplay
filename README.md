@@ -62,6 +62,19 @@ python3 scripts/init_project.py "<제품명>" --language ko   # 프로젝트 폴
 python3 scripts/render.py <프로젝트폴더> all                # 내용 있는 모든 단계 HTML 생성
 ```
 
+## 예제로 바로 보기
+
+레포에 완성된 예제가 들어 있습니다 — [`examples/reading-tracker/`](examples/reading-tracker/)
+("초보 독자를 위한 독서 기록 앱"의 PRD·기능명세서·유저플로우·와이어프레임 4종 산출물).
+clone 후 로컬 서버로 열면 10초 만에 결과물을 만져볼 수 있습니다:
+
+```bash
+cd timplay/examples/reading-tracker && python3 -m http.server 8000
+# http://localhost:8000/features.html / userflow.html / wireframe.html
+```
+
+이 폴더의 `project.json`은 `data-schema.md`에 맞춘 손쉬운 시작점이기도 합니다(복사해서 수정).
+
 ## 사용법
 
 설치 후 아래 둘 중 한 가지로 호출합니다.

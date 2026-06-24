@@ -20,6 +20,7 @@ the literal token  __TIMPLAY_DATA__  which is replaced with the project JSON lit
 """
 import json
 import sys
+import time
 from pathlib import Path
 
 STAGES = {
@@ -29,11 +30,36 @@ STAGES = {
 }
 TOKEN = "__TIMPLAY_DATA__"
 
+# Each stage's content must hold a non-empty list under this key, or the rendered
+# page would crash on first paint. Validated before rendering.
+STAGE_LIST_KEY = {"features": "requirements", "userflow": "versions", "wireframe": "screens"}
+
+
+def embed_json(data: dict) -> str:
+    """Serialize for embedding inside a <script> block.
+
+    json.dumps does NOT escape '/', '<', or the JS line separators, so a product
+    string containing '</script>' would close the script element early (stored XSS /
+    broken HTML). Neutralize the sequences that matter inside a script context. The
+    escapes stay valid JSON-as-JS (\\/ in a string is just /, \\uXXXX is the char).
+    """
+    s = json.dumps(data, ensure_ascii=False)
+    return (s.replace("</", "<\\/")
+             .replace("<!--", "<\\!--")
+             .replace(" ", "\\u2028")
+             .replace(" ", "\\u2029"))
+
 
 def render_stage(proj_dir: Path, stage: str, data: dict, template: Path = None) -> int:
-    if not data.get(stage):
+    content = data.get(stage)
+    if not content:
         print(f"error: project.json has no '{stage}' content yet — fill it before rendering",
               file=sys.stderr)
+        return 1
+    key = STAGE_LIST_KEY[stage]
+    if not isinstance(content, dict) or not isinstance(content.get(key), list):
+        print(f"error: '{stage}.{key}' must be a list — check project.json against "
+              f"references/data-schema.md", file=sys.stderr)
         return 1
     tmpl_name, out_name = STAGES[stage]
     # template override lets a frontend-design-styled variant be used while keeping data binding
@@ -46,7 +72,7 @@ def render_stage(proj_dir: Path, stage: str, data: dict, template: Path = None) 
         print(f"error: token {TOKEN} missing from {tmpl_name}", file=sys.stderr)
         return 1
     # Embed the FULL project so every page is a complete, syncable source of truth.
-    html = html.replace(TOKEN, json.dumps(data, ensure_ascii=False))
+    html = html.replace(TOKEN, embed_json(data))
     out_path = proj_dir / out_name
     out_path.write_text(html, encoding="utf-8")
     print(str(out_path))
@@ -70,7 +96,18 @@ def main() -> int:
         print(f"error: {proj_file} not found — run init_project.py first", file=sys.stderr)
         return 1
 
-    data = json.loads(proj_file.read_text(encoding="utf-8"))
+    try:
+        data = json.loads(proj_file.read_text(encoding="utf-8"))
+    except json.JSONDecodeError as e:
+        print(f"error: {proj_file} is not valid JSON — {e.msg} at line {e.lineno}, column {e.colno}",
+              file=sys.stderr)
+        return 1
+    if not isinstance(data, dict):
+        print("error: project.json must be a JSON object", file=sys.stderr)
+        return 1
+    # Stamp render time so pages can tell a fresh render from stale localStorage
+    # (the templates only adopt the stored copy when its updatedAt is newer).
+    data.setdefault("meta", {})["updatedAt"] = int(time.time() * 1000)
 
     if stage == "all":
         rc = 0
