@@ -17,6 +17,10 @@
   .band-label{position:absolute;left:12px;font-size:.8rem;color:#52525b;z-index:1}
   .lg{display:inline-flex;align-items:center;gap:.35rem;font-size:.72rem;color:#52525b}
   .sw{width:.85rem;height:.85rem;border-radius:.25rem}
+  .del-x{opacity:0;transition:.1s;color:#a1a1aa;cursor:pointer;font-size:.8rem;line-height:1;padding:0 .15rem}
+  .group:hover .del-x{opacity:1}
+  .del-x:hover{color:#dc2626}
+  .band-label .del-x:hover{color:#dc2626}
 </style>
 </head>
 <body class="bg-zinc-50 text-zinc-900">
@@ -59,7 +63,9 @@
       <div id="canvas" class="relative" style="width:1800px;height:1200px">
         <svg id="edges" class="absolute inset-0 w-full h-full" style="z-index:1;pointer-events:none">
           <defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
-            <path d="M0,0 L7,3 L0,6 Z" fill="#a1a1aa"></path></marker></defs>
+            <path d="M0,0 L7,3 L0,6 Z" fill="#a1a1aa"></path></marker>
+          <marker id="arrowSel" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+            <path d="M0,0 L7,3 L0,6 Z" fill="#dc2626"></path></marker></defs>
         </svg>
       </div>
     </div>
@@ -69,7 +75,7 @@
     <h2 class="text-sm font-medium mb-3">유저플로우</h2>
     <button id="newVersion" class="w-full mb-3 text-sm px-3 py-2 rounded-md border border-zinc-200 hover:bg-zinc-50">✦ 새 유저 플로우</button>
     <ul id="versions" class="space-y-1"></ul>
-    <p id="hint" class="mt-4 text-xs text-zinc-400 leading-relaxed">노드를 드래그해 이동 · 더블클릭해 이름 변경 · '연결 모드'에서 두 노드를 차례로 클릭해 흐름 연결</p>
+    <p id="hint" class="mt-4 text-xs text-zinc-400 leading-relaxed">노드를 드래그해 이동 · 더블클릭해 이름 변경 · '연결 모드'에서 두 노드를 차례로 클릭해 흐름 연결 · 연결선을 클릭하면 빨갛게 선택되고 ✕(또는 Delete 키)로 삭제 · 섹션/버전은 마우스를 올리면 ✕</p>
   </aside>
 </div>
 
@@ -79,7 +85,7 @@ const $=(s,r=document)=>r.querySelector(s);
 const uf=PROJECT.userflow;
 $("#pname").textContent=(PROJECT.meta&&PROJECT.meta.productName)||"유저플로우";
 let activeId=uf.activeVersionId||uf.versions[0]?.id;
-let selNode=null, linking=false, linkFrom=null;
+let selNode=null, selEdge=null, linking=false, linkFrom=null;
 const BAND_H=220;
 
 const ver=()=>uf.versions.find(v=>v.id===activeId);
@@ -97,8 +103,10 @@ function render(){
     band.style.background=i%2?"#fafafa":"#f4f4f5"; band.style.zIndex=0;
     canvas.appendChild(band);
     const lbl=document.createElement("div");
-    lbl.className="band-label"; lbl.style.top=(i*BAND_H+10)+"px"; lbl.textContent=s.title;
-    lbl.ondblclick=()=>{const n=prompt("섹션 이름",s.title);if(n){s.title=n;persist();render();}};
+    lbl.className="band-label group flex items-center gap-1"; lbl.style.top=(i*BAND_H+10)+"px";
+    lbl.innerHTML=`<span class="sec-title">${esc(s.title)}</span><span class="del-x" title="섹션 삭제">✕</span>`;
+    lbl.querySelector(".sec-title").ondblclick=()=>{const n=prompt("섹션 이름",s.title);if(n){s.title=n;persist();render();}};
+    lbl.querySelector(".del-x").onclick=e=>{e.stopPropagation();delSection(s);};
     canvas.appendChild(lbl);
   });
   const need=(v.sections?.length||1)*BAND_H+80;
@@ -124,23 +132,44 @@ function drawEdges(){
   canvas.querySelectorAll(".node").forEach(el=>{
     pos[el.dataset.id]={x:el.offsetLeft,y:el.offsetTop,w:el.offsetWidth,h:el.offsetHeight};
   });
+  const NS="http://www.w3.org/2000/svg";
   v.edges.forEach(e=>{
     const a=pos[e.from],b=pos[e.to]; if(!a||!b)return;
     const x1=a.x+a.w,y1=a.y+a.h/2,x2=b.x,y2=b.y+b.h/2;
-    const mx=(x1+x2)/2;
-    const p=document.createElementNS("http://www.w3.org/2000/svg","path");
+    const mx=(x1+x2)/2, my=(y1+y2)/2;
+    const d=`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`;
+    const isSel=selEdge===e.id;
+    const p=document.createElementNS(NS,"path");
     p.setAttribute("class","edge");
-    p.setAttribute("d",`M${x1},${y1} C${mx},${y1} ${mx},${y2} ${x2},${y2}`);
-    p.setAttribute("fill","none"); p.setAttribute("stroke","#a1a1aa"); p.setAttribute("stroke-width","1.5");
-    p.setAttribute("marker-end","url(#arrow)");
+    p.setAttribute("d",d);
+    p.setAttribute("fill","none"); p.setAttribute("stroke",isSel?"#dc2626":"#a1a1aa"); p.setAttribute("stroke-width",isSel?"2":"1.5");
+    p.setAttribute("marker-end",isSel?"url(#arrowSel)":"url(#arrow)");
     svg.appendChild(p);
+    // wide invisible hit area to make the thin line clickable
+    const hit=document.createElementNS(NS,"path");
+    hit.setAttribute("class","edge"); hit.setAttribute("d",d);
+    hit.setAttribute("fill","none"); hit.setAttribute("stroke","transparent"); hit.setAttribute("stroke-width","14");
+    hit.style.pointerEvents="stroke"; hit.style.cursor="pointer";
+    hit.onclick=ev=>{ev.stopPropagation();selEdge=e.id;selNode=null;render();};
+    svg.appendChild(hit);
+    if(isSel){ // delete button at midpoint
+      const g=document.createElementNS(NS,"g"); g.setAttribute("class","edge"); g.style.cursor="pointer"; g.style.pointerEvents="all";
+      const c=document.createElementNS(NS,"circle");
+      c.setAttribute("cx",mx);c.setAttribute("cy",my);c.setAttribute("r","9");c.setAttribute("fill","#dc2626");
+      const t=document.createElementNS(NS,"text");
+      t.setAttribute("x",mx);t.setAttribute("y",my+1);t.setAttribute("text-anchor","middle");t.setAttribute("dominant-baseline","middle");
+      t.setAttribute("fill","#fff");t.setAttribute("font-size","11");t.textContent="✕";
+      g.appendChild(c);g.appendChild(t);
+      g.onclick=ev=>{ev.stopPropagation();delEdge(e.id);};
+      svg.appendChild(g);
+    }
   });
 }
 
 function startDrag(e,n,el){
   if(linking)return;
   e.preventDefault();
-  selNode=n.id; el.classList.add("sel");
+  selNode=n.id; selEdge=null; el.classList.add("sel");
   const sx=e.clientX,sy=e.clientY,ox=n.x,oy=n.y;
   const move=ev=>{n.x=Math.max(0,ox+ev.clientX-sx);n.y=Math.max(0,oy+ev.clientY-sy);
     el.style.left=n.x+"px";el.style.top=n.y+"px";drawEdges();};
@@ -156,16 +185,23 @@ function onNodeClick(n){
       linkFrom=null;linking=false;$("#linkMode").classList.remove("bg-violet-100");
       persist();render();
     }
-  } else { selNode=n.id; render(); }
+  } else { selNode=n.id; selEdge=null; render(); }
 }
 
 function renderVersions(){
   const ul=$("#versions"); ul.innerHTML="";
   uf.versions.forEach(v=>{
     const li=document.createElement("li");
-    li.className="px-3 py-2 rounded-md border text-sm cursor-pointer "+(v.id===activeId?"border-violet-300 bg-violet-50":"border-transparent hover:bg-zinc-50");
-    li.innerHTML=`<div class="font-medium truncate">${v.name}</div><div class="text-xs text-zinc-400">${v.createdAt||""}</div>`;
-    li.onclick=()=>{activeId=v.id;uf.activeVersionId=v.id;selNode=null;persist();render();};
+    li.className="group px-3 py-2 rounded-md border text-sm cursor-pointer "+(v.id===activeId?"border-violet-300 bg-violet-50":"border-transparent hover:bg-zinc-50");
+    li.innerHTML=`<div class="flex items-center gap-1">
+        <span class="ver-name font-medium truncate flex-1">${esc(v.name)}</span>
+        <span class="ver-edit del-x" title="이름 변경">✎</span>
+        <span class="ver-del del-x" title="버전 삭제">✕</span>
+      </div>
+      <div class="text-xs text-zinc-400">${esc(v.createdAt||"")}</div>`;
+    li.onclick=()=>{activeId=v.id;uf.activeVersionId=v.id;selNode=null;selEdge=null;persist();render();};
+    li.querySelector(".ver-edit").onclick=e=>{e.stopPropagation();const n=prompt("유저플로우 이름",v.name);if(n){v.name=n;persist();render();}};
+    li.querySelector(".ver-del").onclick=e=>{e.stopPropagation();delVersion(v);};
     ul.appendChild(li);
   });
 }
@@ -173,16 +209,38 @@ function renderVersions(){
 let idc=Date.now();
 document.querySelectorAll(".addbtn").forEach(b=>b.onclick=()=>{
   const v=ver(); const type=b.dataset.add;
-  v.nodes.push({id:"n-"+(++idc).toString(36),type,label:({page:"새 페이지",sectionTop:"새 섹션 페이지",action:"새 행동"})[type],sectionId:v.sections[0]?.id||null,x:600,y:80});
-  persist();render();
+  const k=v.nodes.length%6;                          // cascade so adds don't stack exactly
+  const id="n-"+(++idc).toString(36);
+  v.nodes.push({id,type,label:({page:"새 페이지",sectionTop:"새 섹션 페이지",action:"새 행동"})[type],sectionId:v.sections[0]?.id||null,x:560+k*28,y:60+k*28});
+  selNode=id;selEdge=null;persist();render();
 });
 $("#addSection").onclick=()=>{const v=ver();v.sections=v.sections||[];v.sections.push({id:"sec-"+(++idc).toString(36),title:"새 섹션",order:v.sections.length});persist();render();};
 $("#linkMode").onclick=()=>{linking=!linking;linkFrom=null;$("#linkMode").classList.toggle("bg-violet-100",linking);$("#hint").textContent=linking?"연결 시작 노드를 클릭하세요.":"";};
-$("#del").onclick=()=>{if(!selNode)return;const v=ver();v.nodes=v.nodes.filter(n=>n.id!==selNode);v.edges=v.edges.filter(e=>e.from!==selNode&&e.to!==selNode);selNode=null;persist();render();};
+function delNode(){if(!selNode)return;const v=ver();v.nodes=v.nodes.filter(n=>n.id!==selNode);v.edges=v.edges.filter(e=>e.from!==selNode&&e.to!==selNode);selNode=null;persist();render();}
+function delEdge(id){const v=ver();v.edges=v.edges.filter(e=>e.id!==id);if(selEdge===id)selEdge=null;persist();render();}
+function delSection(s){const v=ver();const used=v.nodes.filter(n=>n.sectionId===s.id).length;
+  if(used && !confirm(`'${s.title}' 섹션을 삭제할까요? 이 섹션의 노드 ${used}개는 남고 섹션 지정만 해제됩니다.`))return;
+  v.sections=v.sections.filter(x=>x.id!==s.id);
+  v.sections.forEach((x,i)=>x.order=i);
+  v.nodes.forEach(n=>{if(n.sectionId===s.id)n.sectionId=null;});
+  persist();render();}
+function delVersion(v){
+  if(uf.versions.length<=1){alert("최소 1개의 유저플로우는 있어야 합니다.");return;}
+  if(!confirm(`'${v.name}' 유저플로우를 삭제할까요?`))return;
+  uf.versions=uf.versions.filter(x=>x.id!==v.id);
+  if(activeId===v.id){activeId=uf.versions[0].id;uf.activeVersionId=activeId;selNode=null;selEdge=null;}
+  persist();render();}
+$("#del").onclick=()=>{if(selEdge)delEdge(selEdge);else delNode();};
+document.addEventListener("keydown",e=>{
+  if((e.key==="Delete"||e.key==="Backspace")&&(selNode||selEdge)){
+    const t=e.target.tagName; if(t==="INPUT"||t==="TEXTAREA")return;
+    e.preventDefault(); if(selEdge)delEdge(selEdge); else delNode();
+  }});
 $("#newVersion").onclick=()=>{const base=ver();const id="uf-"+(++idc).toString(36);
   uf.versions.push({id,name:"새 유저플로우 "+(uf.versions.length+1),createdAt:(PROJECT.meta&&PROJECT.meta.updatedAt)||"",parentId:null,sections:JSON.parse(JSON.stringify(base?.sections||[])),nodes:[],edges:[]});
   activeId=id;uf.activeVersionId=id;persist();render();};
-canvas.onclick=()=>{if(!linking){selNode=null;render();}};
+canvas.onclick=()=>{if(!linking){selNode=null;selEdge=null;render();}};
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
 const LS="timplay:uf:"+((PROJECT.meta&&PROJECT.meta.slug)||"uf");
 function persist(){try{localStorage.setItem(LS,JSON.stringify(PROJECT.userflow));}catch(e){}}
