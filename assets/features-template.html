@@ -15,6 +15,11 @@
   .grab{cursor:grab}
   .chev{transition:transform .15s}
   .chev.open{transform:rotate(90deg)}
+  .del-x{opacity:0;transition:.1s;color:#a1a1aa;cursor:pointer;font-size:.9rem;line-height:1}
+  .row:hover .del-x{opacity:1}
+  .del-x:hover{color:#dc2626}
+  .fld{width:100%;border:1px solid #e4e4e7;border-radius:.5rem;padding:.4rem .6rem;font-size:.875rem;background:#fff;color:#18181b}
+  .fld:focus{outline:none;border-color:#a78bfa;box-shadow:0 0 0 3px #ede9fe}
 </style>
 </head>
 <body class="bg-zinc-50 text-zinc-900">
@@ -40,7 +45,7 @@
   <section class="border-r border-zinc-200 bg-white flex flex-col">
     <div class="flex items-center justify-between px-4 h-12 border-b border-zinc-100">
       <h2 class="text-sm font-medium">요구사항</h2>
-      <button id="addReq" class="text-zinc-400 hover:text-zinc-900 text-lg leading-none">+</button>
+      <button id="addReq" class="text-zinc-400 hover:text-zinc-900 text-lg leading-none" title="요구사항 추가">+</button>
     </div>
     <ul id="reqList" class="flex-1 overflow-auto py-1"></ul>
   </section>
@@ -49,14 +54,14 @@
   <section class="border-r border-zinc-200 bg-white flex flex-col">
     <div class="flex items-center justify-between px-4 h-12 border-b border-zinc-100">
       <h2 class="text-sm font-medium">기능 / 상세 기능</h2>
-      <button id="addFeat" class="text-zinc-400 hover:text-zinc-900 text-lg leading-none">+</button>
+      <button id="addFeat" class="text-zinc-400 hover:text-zinc-900 text-lg leading-none" title="기능 추가">+</button>
     </div>
     <ul id="featList" class="flex-1 overflow-auto py-1"></ul>
   </section>
 
   <!-- col 3: detail -->
   <section class="overflow-auto">
-    <div id="detail" class="max-w-2xl mx-auto p-8 text-zinc-500">왼쪽에서 기능을 선택하세요.</div>
+    <div id="detail" class="max-w-2xl mx-auto p-8 text-zinc-500"></div>
   </section>
 </main>
 
@@ -66,14 +71,23 @@ const $ = (s,r=document)=>r.querySelector(s);
 const data = PROJECT.features;
 const roles = (PROJECT.prd && PROJECT.prd.attributes && PROJECT.prd.attributes.roles) || [];
 const roleName = id => (roles.find(r=>r.id===id)||{}).name || "—";
+const STATUS = {todo:'시작전',doing:'진행중',done:'완료'};
+const IMP = {low:'낮음',medium:'보통',high:'높음'};
 $("#pname").textContent = (PROJECT.meta && PROJECT.meta.productName) || "기능명세서";
 
 let selReq = data.requirements[0] ? data.requirements[0].id : null;
-let selFeat = null;
+let sel = null;                       // {type:'feature',id} | {type:'spec',id,featId}
 const openFeat = new Set();
 const byOrder = a => [...a].sort((x,y)=>(x.order??0)-(y.order??0));
 const reqById = id => data.requirements.find(r=>r.id===id);
+const featById = (req,id) => req && req.features.find(f=>f.id===id);
 
+function selectedFeature(){const req=reqById(selReq);if(!sel||!req)return null;
+  if(sel.type==='feature')return featById(req,sel.id);
+  if(sel.type==='spec')return featById(req,sel.featId);return null;}
+function selectedSpec(){if(!sel||sel.type!=='spec')return null;const f=selectedFeature();return f&&f.specs.find(s=>s.id===sel.id);}
+
+/* ---------- column 1: requirements ---------- */
 function renderReqs(){
   const ul = $("#reqList"); ul.innerHTML="";
   byOrder(data.requirements).forEach((r,i)=>{
@@ -82,50 +96,63 @@ function renderReqs(){
     li.className="row "+(r.id===selReq?"sel":"")+" mx-2 px-2 py-2 rounded-md flex items-center gap-2 hover:bg-zinc-50";
     li.innerHTML=`<span class="grab text-zinc-300">⠿</span>
       <span class="text-violet-600 text-sm w-4">${i+1}</span>
-      <span class="flex-1 text-sm truncate">${esc(r.title)}</span>
-      <span class="badge">${r.features.length}</span>`;
-    li.querySelector(".flex-1").onclick=()=>{selReq=r.id;selFeat=null;renderAll();};
-    li.querySelector(".flex-1").ondblclick=()=>renameInline(li.querySelector(".flex-1"),v=>{r.title=v;persist();});
+      <span class="label flex-1 text-sm truncate">${esc(r.title)}</span>
+      <span class="badge">${r.features.length}</span>
+      <span class="del-x" title="삭제">✕</span>`;
+    li.onclick=()=>{selReq=r.id;sel=null;renderAll();};
+    li.querySelector(".label").ondblclick=e=>{e.stopPropagation();renameInline(e.target,v=>{r.title=v;persist();});};
+    li.querySelector(".del-x").onclick=e=>{e.stopPropagation();delReq(r);};
     ul.appendChild(li);
   });
   makeSortable(ul, data.requirements);
 }
 
+/* ---------- column 2: features + specs ---------- */
 function renderFeats(){
   const ul=$("#featList"); ul.innerHTML="";
   const req=reqById(selReq);
-  if(!req){ul.innerHTML='<li class="px-4 py-3 text-sm text-zinc-400">요구사항을 선택하세요.</li>';return;}
+  if(!req){ul.innerHTML='<li class="px-4 py-6 text-sm text-zinc-400">왼쪽에서 요구사항을 선택하세요.</li>';return;}
+  if(!req.features.length){ul.innerHTML='<li class="px-4 py-6 text-sm text-zinc-400">아직 기능이 없습니다. 상단 + 로 추가하세요.</li>';}
   byOrder(req.features).forEach((f,i)=>{
     const li=document.createElement("li"); li.dataset.id=f.id; li.className="mb-0.5";
     const open=openFeat.has(f.id);
+    const isSel=sel&&sel.type==='feature'&&sel.id===f.id;
     li.innerHTML=`
-      <div class="row ${f.id===selFeat?'sel':''} mx-2 px-2 py-2 rounded-md flex items-center gap-2 hover:bg-zinc-50">
+      <div class="row ${isSel?'sel':''} mx-2 px-2 py-2 rounded-md flex items-center gap-2 hover:bg-zinc-50">
         <span class="grab text-zinc-300">⠿</span>
         <span class="chev ${open?'open':''} text-zinc-400 text-xs">▶</span>
         <span class="text-violet-600 text-sm w-4">${i+1}</span>
-        <span class="flex-1 text-sm truncate">${esc(f.title)}</span>
+        <span class="label flex-1 text-sm truncate">${esc(f.title)}</span>
         <span class="badge">${f.specs.length}</span>
+        <span class="del-x" title="삭제">✕</span>
       </div>
       <ul class="specs ${open?'':'hidden'} pl-10 pr-2"></ul>`;
     const head=li.querySelector(".row");
+    head.onclick=()=>{sel={type:'feature',id:f.id};openFeat.add(f.id);renderAll();};
+    head.querySelector(".grab").onclick=e=>e.stopPropagation();
     head.querySelector(".chev").onclick=e=>{e.stopPropagation();open?openFeat.delete(f.id):openFeat.add(f.id);renderFeats();};
-    head.querySelector(".flex-1").onclick=()=>{selFeat=f.id;openFeat.add(f.id);renderAll();};
-    head.querySelector(".flex-1").ondblclick=()=>renameInline(head.querySelector(".flex-1"),v=>{f.title=v;persist();});
+    head.querySelector(".label").ondblclick=e=>{e.stopPropagation();renameInline(e.target,v=>{f.title=v;persist();});};
+    head.querySelector(".del-x").onclick=e=>{e.stopPropagation();delFeat(req,f);};
     const sul=li.querySelector(".specs");
     byOrder(f.specs).forEach((s,j)=>{
+      const sSel=sel&&sel.type==='spec'&&sel.id===s.id;
       const sli=document.createElement("li");
       sli.dataset.id=s.id;
-      sli.className="row flex items-center gap-2 py-1.5 px-2 rounded hover:bg-zinc-50";
+      sli.className="row "+(sSel?'sel':'')+" flex items-center gap-2 py-1.5 px-2 rounded hover:bg-zinc-50";
       sli.innerHTML=`<span class="grab text-zinc-300 text-xs">⠿</span>
         <span class="text-zinc-400 text-xs w-3">${j+1}</span>
-        <span class="flex-1 text-sm text-zinc-700 truncate">${esc(s.title)}</span>`;
-      sli.querySelector(".flex-1").ondblclick=()=>renameInline(sli.querySelector(".flex-1"),v=>{s.title=v;persist();});
+        <span class="label flex-1 text-sm text-zinc-700 truncate">${esc(s.title)}</span>
+        <span class="del-x" title="삭제">✕</span>`;
+      sli.onclick=()=>{sel={type:'spec',id:s.id,featId:f.id};openFeat.add(f.id);renderAll();};
+      sli.querySelector(".grab").onclick=e=>e.stopPropagation();
+      sli.querySelector(".label").ondblclick=e=>{e.stopPropagation();renameInline(e.target,v=>{s.title=v;persist();});};
+      sli.querySelector(".del-x").onclick=e=>{e.stopPropagation();delSpec(f,s);};
       sul.appendChild(sli);
     });
     const addSpec=document.createElement("li");
     addSpec.className="text-xs text-zinc-400 hover:text-violet-600 cursor-pointer py-1.5 px-2";
     addSpec.textContent="+ 상세 기능 추가";
-    addSpec.onclick=()=>{const n=nextId("S");f.specs.push({id:n,title:"새 상세 기능",order:f.specs.length,description:""});persist();renderFeats();};
+    addSpec.onclick=()=>{const id=nextId("S");f.specs.push({id,title:"새 상세 기능",order:f.specs.length,description:""});openFeat.add(f.id);sel={type:'spec',id,featId:f.id};persist();renderAll();};
     sul.appendChild(addSpec);
     makeSortable(sul,f.specs);
     ul.appendChild(li);
@@ -133,38 +160,118 @@ function renderFeats(){
   makeSortable(ul, req.features);
 }
 
+/* ---------- column 3: editable detail ---------- */
+const opt=(map,cur)=>Object.entries(map).map(([v,t])=>`<option value="${v}" ${v===cur?'selected':''}>${t}</option>`).join("");
+const roleOpt=cur=>`<option value="" ${!cur?'selected':''}>(없음)</option>`+roles.map(r=>`<option value="${r.id}" ${r.id===cur?'selected':''}>${esc(r.name)}</option>`).join("");
+
+function crumb(parts){return `<div class="text-xs text-zinc-400 mb-3 truncate">${parts.map(esc).join(' <span class="text-zinc-300">/</span> ')}</div>`;}
+
 function renderDetail(){
   const box=$("#detail");
   const req=reqById(selReq);
-  const f=req && req.features.find(x=>x.id===selFeat);
-  if(!f){box.className="max-w-2xl mx-auto p-8 text-zinc-500";box.textContent="왼쪽에서 기능을 선택하세요.";return;}
+  const spec=selectedSpec();
+  const f=selectedFeature();
+  if(spec){ renderSpecDetail(box,req,f,spec); return; }
+  if(f){ renderFeatDetail(box,req,f); return; }
+  box.className="max-w-2xl mx-auto p-8 text-zinc-400 text-sm";
+  box.innerHTML="가운데에서 기능 또는 상세 기능을 선택하면 여기에서 상세 내용을 보고 편집할 수 있습니다.";
+}
+
+function renderFeatDetail(box,req,f){
   box.className="max-w-2xl mx-auto p-8";
   box.innerHTML=`
-    <h1 class="text-2xl font-semibold mb-4">${esc(f.title)}</h1>
-    <dl class="grid grid-cols-[80px_1fr] gap-y-3 text-sm mb-6">
-      <dt class="text-zinc-400">ID</dt><dd>${f.id}</dd>
-      <dt class="text-zinc-400">담당 역할</dt><dd>${esc(roleName(f.roleId))}</dd>
-      <dt class="text-zinc-400">상태</dt><dd>${({todo:'시작전',doing:'진행중',done:'완료'})[f.status]||'시작전'}</dd>
-      <dt class="text-zinc-400">중요도</dt><dd>${({low:'낮음',medium:'보통',high:'높음'})[f.importance]||'보통'}</dd>
-    </dl>
+    ${crumb([req.title,'기능'])}
+    <input id="d-title" class="fld text-xl font-semibold mb-5" value="${esc(f.title)}">
+    <div class="grid grid-cols-[90px_1fr] gap-x-3 gap-y-3 text-sm items-center mb-6">
+      <label class="text-zinc-400">ID</label><div class="text-zinc-500">${f.id}</div>
+      <label class="text-zinc-400">담당 역할</label><select id="d-role" class="fld">${roleOpt(f.roleId)}</select>
+      <label class="text-zinc-400">상태</label><select id="d-status" class="fld">${opt(STATUS,f.status||'todo')}</select>
+      <label class="text-zinc-400">중요도</label><select id="d-imp" class="fld">${opt(IMP,f.importance||'medium')}</select>
+    </div>
     <h3 class="text-sm text-zinc-400 mb-1">설명</h3>
-    <p class="text-sm leading-relaxed mb-6 whitespace-pre-wrap">${esc(f.description||"")}</p>
-    <h3 class="text-sm text-zinc-400 mb-2">수용 기준</h3>
-    <ul class="space-y-2">
-      ${(f.acceptanceCriteria||[]).map((c,i)=>`
-        <li class="flex items-start gap-2 text-sm border border-zinc-100 rounded-md px-3 py-2">
-          <input type="checkbox" data-i="${i}" ${c.done?'checked':''} class="mt-0.5 ac-check">
-          <span class="flex-1">${esc(c.text)}</span>
-        </li>`).join("")}
-    </ul>`;
-  box.querySelectorAll(".ac-check").forEach(cb=>cb.onchange=()=>{f.acceptanceCriteria[cb.dataset.i].done=cb.checked;persist();});
+    <textarea id="d-desc" rows="4" class="fld mb-6 leading-relaxed" placeholder="이 기능이 무엇을 하는지 설명하세요.">${esc(f.description||"")}</textarea>
+    <div class="flex items-center justify-between mb-2">
+      <h3 class="text-sm text-zinc-400">수용 기준</h3>
+      <button id="d-add-ac" class="text-xs text-violet-600 hover:underline">+ 추가</button>
+    </div>
+    <ul id="d-ac" class="space-y-2"></ul>
+    <div class="mt-8 pt-4 border-t border-zinc-100">
+      <button id="d-del" class="text-sm text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md">기능 삭제</button>
+    </div>`;
+  $("#d-title").oninput=e=>{f.title=e.target.value;persist();setLabel(f.id,e.target.value);};
+  $("#d-role").onchange=e=>{f.roleId=e.target.value||null;persist();};
+  $("#d-status").onchange=e=>{f.status=e.target.value;persist();};
+  $("#d-imp").onchange=e=>{f.importance=e.target.value;persist();};
+  $("#d-desc").oninput=e=>{f.description=e.target.value;persist();};
+  $("#d-del").onclick=()=>delFeat(req,f);
+  $("#d-add-ac").onclick=()=>{f.acceptanceCriteria=f.acceptanceCriteria||[];f.acceptanceCriteria.push({text:"",done:false});persist();renderAcList(f);const inps=$("#d-ac").querySelectorAll("input.ac-text");inps[inps.length-1]?.focus();};
+  renderAcList(f);
+}
+
+function renderAcList(f){
+  const ul=$("#d-ac"); if(!ul)return; ul.innerHTML="";
+  (f.acceptanceCriteria||[]).forEach((c,i)=>{
+    const li=document.createElement("li");
+    li.className="flex items-start gap-2 text-sm border border-zinc-100 rounded-md px-2 py-1.5 group";
+    li.innerHTML=`<input type="checkbox" ${c.done?'checked':''} class="mt-2 ac-done">
+      <input class="ac-text fld border-0 shadow-none focus:shadow-none px-1 ${c.done?'line-through text-zinc-400':''}" value="${esc(c.text)}" placeholder="수용 기준을 입력하세요.">
+      <span class="del-x opacity-100 mt-1.5">✕</span>`;
+    li.querySelector(".ac-done").onchange=e=>{c.done=e.target.checked;persist();li.querySelector(".ac-text").classList.toggle("line-through",c.done);li.querySelector(".ac-text").classList.toggle("text-zinc-400",c.done);};
+    li.querySelector(".ac-text").oninput=e=>{c.text=e.target.value;persist();};
+    li.querySelector(".del-x").onclick=()=>{f.acceptanceCriteria.splice(i,1);persist();renderAcList(f);};
+    ul.appendChild(li);
+  });
+  if(!(f.acceptanceCriteria||[]).length)ul.innerHTML='<li class="text-xs text-zinc-400 px-1">아직 수용 기준이 없습니다.</li>';
+}
+
+function renderSpecDetail(box,req,f,s){
+  box.className="max-w-2xl mx-auto p-8";
+  box.innerHTML=`
+    ${crumb([req.title,f.title,'상세 기능'])}
+    <input id="d-title" class="fld text-xl font-semibold mb-5" value="${esc(s.title)}">
+    <div class="grid grid-cols-[90px_1fr] gap-x-3 gap-y-3 text-sm items-center mb-6">
+      <label class="text-zinc-400">ID</label><div class="text-zinc-500">${s.id}</div>
+    </div>
+    <h3 class="text-sm text-zinc-400 mb-1">상세 명세</h3>
+    <textarea id="d-desc" rows="6" class="fld leading-relaxed" placeholder="개발·디자인의 직접 기준이 되는 세부 동작·정책을 기술하세요.">${esc(s.description||"")}</textarea>
+    <div class="mt-8 pt-4 border-t border-zinc-100">
+      <button id="d-del" class="text-sm text-red-600 hover:bg-red-50 px-3 py-1.5 rounded-md">상세 기능 삭제</button>
+    </div>`;
+  $("#d-title").oninput=e=>{s.title=e.target.value;persist();setLabel(s.id,e.target.value);};
+  $("#d-desc").oninput=e=>{s.description=e.target.value;persist();};
+  $("#d-del").onclick=()=>delSpec(f,s);
+}
+
+/* update a left-list label live without rebuilding (keeps input focus) */
+function setLabel(id,text){
+  document.querySelectorAll(`li[data-id="${id}"] > .row > .label, li[data-id="${id}"] > .label, #reqList li[data-id="${id}"] .label`)
+    .forEach(el=>el.textContent=text);
+}
+
+/* ---------- delete ---------- */
+function delReq(r){
+  if(r.features.length && !confirm(`'${r.title}' 요구사항과 하위 기능 ${r.features.length}개를 삭제할까요?`))return;
+  data.requirements=data.requirements.filter(x=>x.id!==r.id);
+  if(selReq===r.id){selReq=data.requirements[0]?.id||null;sel=null;}
+  persist();renderAll();
+}
+function delFeat(req,f){
+  if((f.specs.length||(f.acceptanceCriteria||[]).length) && !confirm(`'${f.title}' 기능을 삭제할까요?`))return;
+  req.features=req.features.filter(x=>x.id!==f.id);
+  if(sel&&(sel.id===f.id||sel.featId===f.id))sel=null;
+  persist();renderAll();
+}
+function delSpec(f,s){
+  f.specs=f.specs.filter(x=>x.id!==s.id);
+  if(sel&&sel.type==='spec'&&sel.id===s.id)sel={type:'feature',id:f.id};
+  persist();renderAll();
 }
 
 function renderAll(){renderReqs();renderFeats();renderDetail();}
 
 function makeSortable(ul, model){
   new Sortable(ul,{handle:".grab",animation:120,onEnd:()=>{
-    [...ul.children].forEach((li,idx)=>{
+    [...ul.children].filter(li=>li.dataset.id).forEach((li,idx)=>{
       const item=model.find(m=>m.id===li.dataset.id);
       if(item) item.order=idx;
     });
@@ -177,6 +284,7 @@ function renameInline(span,save){
   const inp=document.createElement("input");
   inp.value=cur; inp.className="w-full text-sm border border-violet-300 rounded px-1";
   span.replaceWith(inp); inp.focus(); inp.select();
+  inp.onclick=e=>e.stopPropagation();
   const done=()=>{const v=inp.value.trim()||cur;save(v);renderAll();};
   inp.onblur=done; inp.onkeydown=e=>{if(e.key==="Enter")inp.blur();if(e.key==="Escape"){inp.value=cur;inp.blur();}};
 }
@@ -185,13 +293,13 @@ let idc=Date.now();
 function nextId(p){return `${p}-${(++idc).toString(36)}`;}
 function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
-$("#addReq").onclick=()=>{const id=nextId("R");data.requirements.push({id,title:"새 요구사항",order:data.requirements.length,features:[]});selReq=id;persist();renderAll();};
-$("#addFeat").onclick=()=>{const req=reqById(selReq);if(!req)return;const id=nextId("F");req.features.push({id,title:"새 기능",order:req.features.length,roleId:roles[0]?.id||null,status:"todo",importance:"medium",description:"",acceptanceCriteria:[],specs:[]});selFeat=id;persist();renderAll();};
+$("#addReq").onclick=()=>{const id=nextId("R");data.requirements.push({id,title:"새 요구사항",order:data.requirements.length,features:[]});selReq=id;sel=null;persist();renderAll();};
+$("#addFeat").onclick=()=>{const req=reqById(selReq);if(!req){alert("먼저 요구사항을 선택하세요.");return;}const id=nextId("F");req.features.push({id,title:"새 기능",order:req.features.length,roleId:roles[0]?.id||null,status:"todo",importance:"medium",description:"",acceptanceCriteria:[],specs:[]});sel={type:'feature',id};persist();renderAll();};
 
 // persistence + import/export
 const LS="timplay:"+((PROJECT.meta&&PROJECT.meta.slug)||"features");
 function persist(){try{localStorage.setItem(LS,JSON.stringify(PROJECT));}catch(e){}}
-(function restore(){try{const s=localStorage.getItem(LS);if(s){const o=JSON.parse(s);if(o.features){data.requirements=o.features.requirements;}}}catch(e){}})();
+(function restore(){try{const s=localStorage.getItem(LS);if(s){const o=JSON.parse(s);if(o.features){data.requirements=o.features.requirements;selReq=data.requirements[0]?.id||null;}}}catch(e){}})();
 $("#export").onclick=()=>{
   const blob=new Blob([JSON.stringify(PROJECT,null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);
@@ -199,7 +307,7 @@ $("#export").onclick=()=>{
 };
 $("#import").onclick=()=>$("#file").click();
 $("#file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
-  r.onload=()=>{try{const o=JSON.parse(r.result);Object.assign(PROJECT,o);data.requirements=(o.features||data).requirements;selReq=data.requirements[0]?.id||null;selFeat=null;persist();renderAll();}catch(err){alert("JSON 파싱 실패: "+err.message);}};
+  r.onload=()=>{try{const o=JSON.parse(r.result);Object.assign(PROJECT,o);data.requirements=(o.features||data).requirements;selReq=data.requirements[0]?.id||null;sel=null;persist();renderAll();}catch(err){alert("JSON 파싱 실패: "+err.message);}};
   r.readAsText(f);};
 
 renderAll();
