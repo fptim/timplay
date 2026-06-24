@@ -90,17 +90,32 @@ edges, deletable sections/versions, and JSON import/export.
    nodes that correspond to a feature whenever possible.
 3. Render: `scripts/render.py <project-dir> userflow` → writes `userflow.html`.
 
-### Stage 4 — Wireframe (clickable shadcn-style prototype)
+### Stage 4 — Wireframe (clickable prototype)
 
 Turns each `page` node into a screen of simple UI elements with screen-to-screen navigation.
-Single-file HTML, Tailwind CDN, shadcn-style components. Desktop layout = top nav + side menu;
-mobile layout = bottom tab bar. The prototype is clickable (button/card/list `linkTo` navigates).
+Single-file HTML, Tailwind CDN. The built-in look is a neutral shadcn-style baseline, but prefer a
+frontend design skill when available (see step 2). Desktop layout = top nav + side menu; mobile
+layout = bottom tab bar. The prototype is clickable (button/card/list `linkTo` navigates).
 
 1. Pick a `userflow` version (`userflowVersionId`) and `device`. For each `page`/`sectionTop` node,
    define a screen with `elements` (heading/text/button/input/image/card/list/divider) and set
    `linkTo` on interactive elements using userflow edges as the guide. Add `nav` entries for the menu.
    Write `wireframe` per the schema.
-2. Render: `scripts/render.py <project-dir> wireframe` → writes `wireframe.html`.
+2. **Apply an available frontend design skill (do this before rendering).** Check whether a
+   frontend/UI design skill is installed — in order of preference: `frontend-design`, then
+   `anthropic-skills:web-artifacts-builder`, `vercel:shadcn`, or `design:design-system`. Consult the
+   list of available skills (do not guess names). **If one exists, invoke it** and use its guidance to
+   elevate the wireframe's visual design — typography, color, spacing, motion, background/texture —
+   choosing a direction that fits the product (use the PRD's category/tone). Produce a styled variant
+   of `assets/wireframe-template.html` and render from that. **Preserve the wireframe contract** while
+   restyling: keep the `__TIMPLAY_DATA__` token and the entire data-binding/sync script intact — screens
+   built from `wireframe.screens`, `linkTo` click navigation, the desktop/mobile toggle, the shared
+   `localStorage` sync, and Import/Export. Keep it readable as a wireframe (structure-first); only go
+   high-fidelity if the user asks. **If no such skill is available**, render the built-in neutral
+   shadcn-style template as-is.
+3. Render: `scripts/render.py <project-dir> wireframe` (or `all`) → writes `wireframe.html`. If you
+   created a styled variant in step 2, point `render.py` at it / inject `__TIMPLAY_DATA__` into it so
+   the rendered file keeps the data + sync behavior.
 
 ## One source of truth — edit once, reflect everywhere
 
@@ -130,9 +145,11 @@ so every document reflects it. Tip: tell users to open the pages from a local se
 ## Scripts
 
 - `scripts/init_project.py "<name>" [--path .] [--slug ..] [--language ko]` — scaffold a project folder + `project.json`.
-- `scripts/render.py <project-dir> <features|userflow|wireframe|all>` — embed the full `project.json`
-  into the matching `assets/*-template.html` and write the stage's HTML into the project folder. Use
-  `all` to re-render every stage that has content (the default after any data change).
+- `scripts/render.py <project-dir> <features|userflow|wireframe|all> [--template=<path>]` — embed the
+  full `project.json` into the matching `assets/*-template.html` and write the stage's HTML into the
+  project folder. Use `all` to re-render every stage that has content (the default after any data
+  change). `--template` (single stage only) renders from a custom template variant — used to apply a
+  frontend design skill to the wireframe while keeping the data-binding/sync script.
   (PRD has no render step — write `prd.md` directly.)
 
 The HTML pages load Tailwind and SortableJS from CDNs, so viewing them needs internet access.
