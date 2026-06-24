@@ -101,21 +101,23 @@ layout = bottom tab bar. The prototype is clickable (button/card/list `linkTo` n
    define a screen with `elements` (heading/text/button/input/image/card/list/divider) and set
    `linkTo` on interactive elements using userflow edges as the guide. Add `nav` entries for the menu.
    Write `wireframe` per the schema.
-2. **Apply an available frontend design skill (do this before rendering).** Check whether a
-   frontend/UI design skill is installed — in order of preference: `frontend-design`, then
-   `anthropic-skills:web-artifacts-builder`, `vercel:shadcn`, or `design:design-system`. Consult the
-   list of available skills (do not guess names). **If one exists, invoke it** and use its guidance to
-   elevate the wireframe's visual design — typography, color, spacing, motion, background/texture —
-   choosing a direction that fits the product (use the PRD's category/tone). Produce a styled variant
-   of `assets/wireframe-template.html` and render from that. **Preserve the wireframe contract** while
-   restyling: keep the `__TIMPLAY_DATA__` token and the entire data-binding/sync script intact — screens
-   built from `wireframe.screens`, `linkTo` click navigation, the desktop/mobile toggle, the shared
-   `localStorage` sync, and Import/Export. Keep it readable as a wireframe (structure-first); only go
-   high-fidelity if the user asks. **If no such skill is available**, render the built-in neutral
-   shadcn-style template as-is.
+2. **Optionally apply a frontend design skill — only if your runtime provides one.** This is an
+   enhancement, not a requirement, and it is runtime-specific. Whether such a capability exists, and
+   how you invoke it, depends on where this skill runs: in Claude Code it might be a skill like
+   `frontend-design` (a *possible example only* — such names vary by setup and often do not exist;
+   check the runtime's available-skills list and never guess a name). Other runtimes (Copilot CLI,
+   Gemini) differ, and some (e.g. Codex) have no skill-invocation mechanism at all. **If a frontend
+   design capability is available**, use it to elevate the wireframe's visual design — typography,
+   color, spacing, motion, texture — in a direction that fits the product (use the PRD's category/
+   tone), producing a styled variant of `assets/wireframe-template.html`. **Preserve the wireframe
+   contract** while restyling: keep the `__TIMPLAY_DATA__` token and the entire data-binding/sync
+   script intact (screens from `wireframe.screens`, `linkTo` navigation, desktop/mobile toggle, the
+   shared `localStorage` sync, Import/Export). Keep it readable as a wireframe; go high-fidelity only
+   if asked. **If no such capability exists (the common case), render the built-in template as-is** —
+   it is fully self-sufficient and depends on no other skill.
 3. Render: `scripts/render.py <project-dir> wireframe` (or `all`) → writes `wireframe.html`. If you
-   created a styled variant in step 2, point `render.py` at it / inject `__TIMPLAY_DATA__` into it so
-   the rendered file keeps the data + sync behavior.
+   made a styled variant in step 2, render it with `--template=<path>` so the output keeps the data +
+   sync behavior.
 
 ## One source of truth — edit once, reflect everywhere
 
@@ -153,3 +155,11 @@ so every document reflects it. Tip: tell users to open the pages from a local se
   (PRD has no render step — write `prd.md` directly.)
 
 The HTML pages load Tailwind and SortableJS from CDNs, so viewing them needs internet access.
+
+## Runtime portability
+
+This skill's core is runtime-agnostic: the two Python scripts use only the standard library and the
+whole workflow is just "fill `project.json` → run `render.py`". It does not require any other skill or
+tool. The only runtime-specific part is the *optional* Stage 4 design-skill enhancement (see Stage 4
+step 2) — skip it where no such capability exists (e.g. Codex). When this runs outside Claude Code,
+follow these same steps and invoke the scripts directly; ignore any Claude-Code-specific phrasing.
