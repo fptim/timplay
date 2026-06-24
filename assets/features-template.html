@@ -314,15 +314,34 @@ window.addEventListener("storage",e=>{ // another timplay page (or tab) changed 
   if(e.key!==LS||!e.newValue)return;
   try{syncFromShared(JSON.parse(e.newValue));if(!reqById(selReq))selReq=data.requirements[0]?.id||null;renderAll();}catch(err){}
 });
-$("#export").onclick=()=>{
-  const blob=new Blob([JSON.stringify(PROJECT,null,2)],{type:"application/json"});
-  const a=document.createElement("a");a.href=URL.createObjectURL(blob);
-  a.download=((PROJECT.meta&&PROJECT.meta.slug)||"project")+".json";a.click();
-};
-$("#import").onclick=()=>$("#file").click();
-$("#file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
-  r.onload=()=>{try{const o=JSON.parse(r.result);Object.assign(PROJECT,o);data.requirements=(o.features||data).requirements;selReq=data.requirements[0]?.id||null;sel=null;persist();renderAll();}catch(err){alert("JSON 파싱 실패: "+err.message);}};
-  r.readAsText(f);};
+// save/load: overwrite the SAME project.json in place when supported (Chromium + secure context),
+// otherwise fall back to a normal download. Importing also binds that file for future saves.
+const SLUG=(PROJECT.meta&&PROJECT.meta.slug)||"project";
+const FSA="showSaveFilePicker" in window;
+let fileHandle=null;
+const idb={open(){return new Promise(res=>{let r;try{r=indexedDB.open("timplay",1);}catch(e){return res(null);}r.onupgradeneeded=()=>r.result.createObjectStore("handles");r.onsuccess=()=>res(r.result);r.onerror=()=>res(null);});},
+  async get(k){const db=await this.open();if(!db)return null;return new Promise(res=>{try{const t=db.transaction("handles").objectStore("handles").get(k);t.onsuccess=()=>res(t.result||null);t.onerror=()=>res(null);}catch(e){res(null);}});},
+  async set(k,v){const db=await this.open();if(!db)return;try{db.transaction("handles","readwrite").objectStore("handles").put(v,k);}catch(e){}}};
+async function perm(h){if(!h.queryPermission)return true;if(await h.queryPermission({mode:"readwrite"})==="granted")return true;return (await h.requestPermission({mode:"readwrite"}))==="granted";}
+function flashSaved(msg){const b=$("#export");if(!b.dataset.t)b.dataset.t=b.textContent;b.textContent="✓ "+msg;setTimeout(()=>{b.textContent=b.dataset.t;},1200);}
+function applyImport(text){try{syncFromShared(JSON.parse(text));if(!reqById(selReq))selReq=data.requirements[0]?.id||null;sel=null;persist();renderAll();}catch(err){alert("JSON 파싱 실패: "+err.message);}}
+async function doExport(){
+  const text=JSON.stringify(PROJECT,null,2);
+  if(FSA){try{
+    if(!fileHandle)fileHandle=await idb.get("file:"+SLUG);
+    if(fileHandle&&!(await perm(fileHandle)))fileHandle=null;
+    if(!fileHandle){fileHandle=await window.showSaveFilePicker({suggestedName:SLUG+".json",types:[{description:"JSON",accept:{"application/json":[".json"]}}]});await idb.set("file:"+SLUG,fileHandle);}
+    const w=await fileHandle.createWritable();await w.write(text);await w.close();flashSaved("저장됨");return;
+  }catch(err){if(err&&err.name==="AbortError")return;}}
+  const blob=new Blob([text],{type:"application/json"});const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=SLUG+".json";a.click();
+}
+async function doImport(){
+  if(FSA){try{const [h]=await window.showOpenFilePicker({types:[{description:"JSON",accept:{"application/json":[".json"]}}]});fileHandle=h;await idb.set("file:"+SLUG,h);applyImport(await (await h.getFile()).text());return;}catch(err){if(err&&err.name==="AbortError")return;}}
+  $("#file").click();
+}
+$("#export").onclick=doExport;
+$("#import").onclick=doImport;
+$("#file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=()=>applyImport(r.result);r.readAsText(f);};
 
 renderAll();
 </script>

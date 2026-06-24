@@ -119,9 +119,13 @@ source, then propagate it to all documents:
   data as the 기능명세서.
 
 **Edit round-trip with the user:** every page has **불러오기 (Import)** / **내보내기 (Export)**.
-When the user edits in the browser and exports the updated `project.json`, take that file as the new
-source of truth: overwrite the project's `project.json`, then `render.py <project-dir> all` so every
-document reflects it.
+On Chromium served over `localhost`/`https`, **Export overwrites the same `project.json` in place**
+(first save picks the file via the File System Access API, then reuses it; Import also binds that
+file for future saves). Elsewhere (Firefox/Safari, or pages opened via `file://`) Export falls back
+to a normal download. When the user gives you an updated `project.json` (saved or exported), take it
+as the new source of truth, overwrite the project's `project.json`, then `render.py <project-dir> all`
+so every document reflects it. Tip: tell users to open the pages from a local server
+(`python3 -m http.server` in the project folder) to get in-place save.
 
 ## Scripts
 
