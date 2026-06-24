@@ -21,6 +21,16 @@
   .group:hover .del-x{opacity:1}
   .del-x:hover{color:#dc2626}
   .band-label .del-x:hover{color:#dc2626}
+  .node-btn{position:absolute;top:-9px;right:-9px;width:18px;height:18px;border-radius:9999px;background:#fff;
+    border:1px solid #d4d4d8;color:#71717a;font-size:10px;display:flex;align-items:center;justify-content:center;
+    cursor:pointer;opacity:0;transition:.1s;z-index:4}
+  .node:hover .node-btn{opacity:1}
+  .node-btn.linked{background:#7c3aed;color:#fff;border-color:#7c3aed;opacity:1}
+  .node-btn:not(.linked):hover{border-color:#7c3aed;color:#7c3aed}
+  #fpanel{transform:translateX(100%);transition:transform .18s ease}
+  #fpanel.open{transform:translateX(0)}
+  .fld{width:100%;border:1px solid #e4e4e7;border-radius:.5rem;padding:.35rem .55rem;font-size:.85rem;background:#fff;color:#18181b}
+  .fld:focus{outline:none;border-color:#a78bfa;box-shadow:0 0 0 3px #ede9fe}
 </style>
 </head>
 <body class="bg-zinc-50 text-zinc-900">
@@ -75,8 +85,17 @@
     <h2 class="text-sm font-medium mb-3">유저플로우</h2>
     <button id="newVersion" class="w-full mb-3 text-sm px-3 py-2 rounded-md border border-zinc-200 hover:bg-zinc-50">✦ 새 유저 플로우</button>
     <ul id="versions" class="space-y-1"></ul>
-    <p id="hint" class="mt-4 text-xs text-zinc-400 leading-relaxed">노드를 드래그해 이동 · 더블클릭해 이름 변경 · '연결 모드'에서 두 노드를 차례로 클릭해 흐름 연결 · 연결선을 클릭하면 빨갛게 선택되고 ✕(또는 Delete 키)로 삭제 · 섹션/버전은 마우스를 올리면 ✕</p>
+    <p id="hint" class="mt-4 text-xs text-zinc-400 leading-relaxed">노드를 드래그해 이동 · 더블클릭해 이름 변경 · 노드 위 ✎ 버튼으로 기능/상세기능 상세 보기·편집 · '연결 모드'에서 두 노드를 차례로 클릭해 흐름 연결 · 연결선을 클릭하면 빨갛게 선택되고 ✕(또는 Delete 키)로 삭제 · 섹션/버전은 마우스를 올리면 ✕</p>
   </aside>
+</div>
+
+<!-- node → feature/spec detail drawer -->
+<div id="fpanel" class="fixed top-14 right-0 bottom-0 w-[380px] bg-white border-l border-zinc-200 shadow-xl overflow-auto z-30">
+  <div class="flex items-center justify-between h-12 px-4 border-b border-zinc-100 sticky top-0 bg-white">
+    <span class="text-sm font-medium">기능 / 상세 기능</span>
+    <button id="fp-close" class="text-zinc-400 hover:text-zinc-900 text-sm">✕</button>
+  </div>
+  <div id="fp-body" class="p-5"></div>
 </div>
 
 <script>
@@ -120,6 +139,15 @@ function render(){
     el.onmousedown=e=>startDrag(e,n,el);
     el.ondblclick=()=>{const t=prompt("노드 이름",n.label);if(t){n.label=t;persist();render();}};
     el.onclick=e=>{e.stopPropagation();onNodeClick(n);};
+    if(n.type!=='start'){           // detail button: open the linked feature/spec editor
+      const btn=document.createElement("span");
+      btn.className="node-btn"+(n.ref?" linked":"");
+      btn.textContent=n.ref?"✓":"✎";
+      btn.title=n.ref?"연결된 기능 상세 편집":"기능/상세기능 연결 및 편집";
+      btn.onmousedown=e=>e.stopPropagation();
+      btn.onclick=e=>{e.stopPropagation();openPanel(n);};
+      el.appendChild(btn);
+    }
     canvas.appendChild(el);
   });
   drawEdges();
@@ -242,9 +270,128 @@ $("#newVersion").onclick=()=>{const base=ver();const id="uf-"+(++idc).toString(3
 canvas.onclick=()=>{if(!linking){selNode=null;selEdge=null;render();}};
 function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
-const LS="timplay:uf:"+((PROJECT.meta&&PROJECT.meta.slug)||"uf");
-function persist(){try{localStorage.setItem(LS,JSON.stringify(PROJECT.userflow));}catch(e){}}
-(function restore(){try{const s=localStorage.getItem(LS);if(s){const o=JSON.parse(s);if(o.versions){uf.versions=o.versions;uf.activeVersionId=o.activeVersionId;activeId=o.activeVersionId||uf.versions[0]?.id;}}}catch(e){}})();
+/* ---------- node → feature/spec detail drawer (edits sync to 기능명세서) ---------- */
+let fpanelOpen=false, panelNodeId=null;
+const fpanel=$("#fpanel");
+$("#fp-close").onclick=closePanel;
+const feats=()=>(PROJECT.features&&PROJECT.features.requirements)||[];
+const prdRoles=()=>(PROJECT.prd&&PROJECT.prd.attributes&&PROJECT.prd.attributes.roles)||[];
+const STAT={todo:'시작전',doing:'진행중',done:'완료'}, IMPV={low:'낮음',medium:'보통',high:'높음'};
+const optTags=(map,cur)=>Object.entries(map).map(([v,t])=>`<option value="${v}" ${v===cur?'selected':''}>${t}</option>`).join("");
+const roleTags=cur=>`<option value="">(없음)</option>`+prdRoles().map(r=>`<option value="${r.id}" ${r.id===cur?'selected':''}>${esc(r.name)}</option>`).join("");
+function findRef(ref){
+  if(!ref)return null;
+  for(const r of feats())for(const f of r.features){
+    if(ref.type==='feature'&&f.id===ref.id)return {req:r,feat:f};
+    if(ref.type==='spec'){const s=f.specs.find(x=>x.id===ref.id);if(s)return {req:r,feat:f,spec:s};}
+  }
+  return null;
+}
+const panelNode=()=>ver()?.nodes.find(n=>n.id===panelNodeId);
+function openPanel(n){panelNodeId=n.id;fpanelOpen=true;fpanel.classList.add("open");renderPanel();}
+function closePanel(){fpanelOpen=false;fpanel.classList.remove("open");}
+function linkSelect(node){
+  let h=`<select id="fp-link" class="fld mb-3"><option value="">(연결 안 됨)</option>`;
+  for(const r of feats()){
+    h+=`<optgroup label="${esc(r.title)}">`;
+    for(const f of r.features){
+      h+=`<option value="feature:${f.id}" ${node.ref&&node.ref.type==='feature'&&node.ref.id===f.id?'selected':''}>기능 · ${esc(f.title)}</option>`;
+      for(const s of f.specs)h+=`<option value="spec:${s.id}" ${node.ref&&node.ref.type==='spec'&&node.ref.id===s.id?'selected':''}>　— 상세 · ${esc(s.title)}</option>`;
+    }
+    h+=`</optgroup>`;
+  }
+  return h+`</select>`;
+}
+function renderPanel(){
+  const body=$("#fp-body"); const node=panelNode(); if(!node){closePanel();return;}
+  if(!feats().length){
+    body.innerHTML=`<p class="text-sm text-zinc-500 leading-relaxed">기능명세서가 비어 있습니다.<br>먼저 <a href="features.html" class="text-violet-600 underline">기능명세서</a>에서 기능을 추가하면 노드에 연결할 수 있습니다.</p>`;
+    return;
+  }
+  const found=findRef(node.ref);
+  body.innerHTML=`
+    <div class="text-xs text-zinc-400 mb-1">노드</div>
+    <div class="text-sm font-medium mb-3 truncate">${esc(node.label)}</div>
+    <div class="text-xs text-zinc-400 mb-1">연결된 기능 / 상세 기능</div>
+    ${linkSelect(node)}
+    <button id="fp-new" class="text-xs text-violet-600 hover:underline mb-2">+ '${esc(node.label)}' 이름으로 기능 새로 만들기</button>
+    <div id="fp-detail"></div>`;
+  $("#fp-link").onchange=e=>{const v=e.target.value;node.ref=v?{type:v.split(":")[0],id:v.split(":")[1]}:null;persist();render();renderPanel();};
+  $("#fp-new").onclick=()=>{const req=feats()[0];const id="F-"+(++idc).toString(36);
+    req.features.push({id,title:node.label||"새 기능",order:req.features.length,roleId:prdRoles()[0]?.id||null,status:"todo",importance:"medium",description:"",acceptanceCriteria:[],specs:[]});
+    node.ref={type:'feature',id};persist();render();renderPanel();};
+  const d=$("#fp-detail");
+  if(!found){d.innerHTML=`<p class="text-sm text-zinc-400 mt-2 leading-relaxed">위에서 기능/상세기능을 선택하면 여기서 바로 보고 편집할 수 있습니다. 편집 내용은 기능명세서에도 함께 반영됩니다.</p>`;return;}
+  if(found.spec)renderSpecPanel(d,found); else renderFeatPanel(d,found);
+}
+function renderFeatPanel(d,{feat:f}){
+  d.innerHTML=`
+    <hr class="my-3 border-zinc-100">
+    <input id="p-title" class="fld text-base font-semibold mb-3" value="${esc(f.title)}">
+    <div class="grid grid-cols-[56px_1fr] gap-x-2 gap-y-2 text-sm items-center mb-4">
+      <label class="text-zinc-400">ID</label><div class="text-zinc-500 text-xs">${f.id}</div>
+      <label class="text-zinc-400">역할</label><select id="p-role" class="fld">${roleTags(f.roleId)}</select>
+      <label class="text-zinc-400">상태</label><select id="p-status" class="fld">${optTags(STAT,f.status||'todo')}</select>
+      <label class="text-zinc-400">중요도</label><select id="p-imp" class="fld">${optTags(IMPV,f.importance||'medium')}</select>
+    </div>
+    <div class="text-sm text-zinc-400 mb-1">설명</div>
+    <textarea id="p-desc" rows="3" class="fld mb-4">${esc(f.description||"")}</textarea>
+    <div class="flex items-center justify-between mb-1"><span class="text-sm text-zinc-400">수용 기준</span><button id="p-add-ac" class="text-xs text-violet-600 hover:underline">+ 추가</button></div>
+    <ul id="p-ac" class="space-y-1.5"></ul>
+    <a href="features.html" class="inline-block mt-4 text-xs text-zinc-400 hover:text-violet-600">기능명세서에서 전체 보기 →</a>`;
+  $("#p-title").oninput=e=>{f.title=e.target.value;persist();};
+  $("#p-role").onchange=e=>{f.roleId=e.target.value||null;persist();};
+  $("#p-status").onchange=e=>{f.status=e.target.value;persist();};
+  $("#p-imp").onchange=e=>{f.importance=e.target.value;persist();};
+  $("#p-desc").oninput=e=>{f.description=e.target.value;persist();};
+  $("#p-add-ac").onclick=()=>{f.acceptanceCriteria=f.acceptanceCriteria||[];f.acceptanceCriteria.push({text:"",done:false});persist();renderAc(f);const a=$("#p-ac").querySelectorAll(".ac-text");a[a.length-1]?.focus();};
+  renderAc(f);
+}
+function renderAc(f){
+  const ul=$("#p-ac"); if(!ul)return; ul.innerHTML="";
+  (f.acceptanceCriteria||[]).forEach((c,i)=>{
+    const li=document.createElement("li"); li.className="flex items-start gap-2 text-sm border border-zinc-100 rounded px-2 py-1";
+    li.innerHTML=`<input type="checkbox" ${c.done?'checked':''} class="mt-1.5 ac-done">
+      <input class="ac-text fld border-0 px-1 ${c.done?'line-through text-zinc-400':''}" value="${esc(c.text)}" placeholder="수용 기준">
+      <span class="del-x" style="opacity:1">✕</span>`;
+    li.querySelector(".ac-done").onchange=e=>{c.done=e.target.checked;persist();renderAc(f);};
+    li.querySelector(".ac-text").oninput=e=>{c.text=e.target.value;persist();};
+    li.querySelector(".del-x").onclick=()=>{f.acceptanceCriteria.splice(i,1);persist();renderAc(f);};
+    ul.appendChild(li);
+  });
+  if(!(f.acceptanceCriteria||[]).length)ul.innerHTML='<li class="text-xs text-zinc-400">없음</li>';
+}
+function renderSpecPanel(d,{feat:f,spec:s}){
+  d.innerHTML=`
+    <hr class="my-3 border-zinc-100">
+    <div class="text-xs text-zinc-400 mb-1">상위 기능 · ${esc(f.title)}</div>
+    <input id="p-title" class="fld text-base font-semibold mb-3" value="${esc(s.title)}">
+    <div class="grid grid-cols-[56px_1fr] gap-x-2 gap-y-2 text-sm items-center mb-4"><label class="text-zinc-400">ID</label><div class="text-zinc-500 text-xs">${s.id}</div></div>
+    <div class="text-sm text-zinc-400 mb-1">상세 명세</div>
+    <textarea id="p-desc" rows="5" class="fld">${esc(s.description||"")}</textarea>
+    <a href="features.html" class="inline-block mt-4 text-xs text-zinc-400 hover:text-violet-600">기능명세서에서 전체 보기 →</a>`;
+  $("#p-title").oninput=e=>{s.title=e.target.value;persist();};
+  $("#p-desc").oninput=e=>{s.description=e.target.value;persist();};
+}
+
+const LS="timplay:project:"+((PROJECT.meta&&PROJECT.meta.slug)||"default");
+function persist(){try{localStorage.setItem(LS,JSON.stringify(PROJECT));}catch(e){}}
+function syncFromShared(o){ // replace each stage's contents in place (keeps `uf` alias valid)
+  if(!o)return false;
+  for(const k of ['meta','prd','features','userflow','wireframe']){
+    if(o[k]==null)continue;
+    const cur=PROJECT[k];
+    if(cur&&typeof cur==='object'&&!Array.isArray(cur)){for(const kk of Object.keys(cur))delete cur[kk];Object.assign(cur,o[k]);}
+    else PROJECT[k]=o[k];
+  }
+  if(!ver())activeId=uf.versions[0]?.id; uf.activeVersionId=activeId;
+  return true;
+}
+(function restore(){try{const s=localStorage.getItem(LS);if(s)syncFromShared(JSON.parse(s));}catch(e){}})();
+window.addEventListener("storage",e=>{ // another timplay page (e.g. 기능명세서) changed the project
+  if(e.key!==LS||!e.newValue)return;
+  try{syncFromShared(JSON.parse(e.newValue));render();if(fpanelOpen)renderPanel();}catch(err){}
+});
 $("#export").onclick=()=>{const blob=new Blob([JSON.stringify(PROJECT,null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=((PROJECT.meta&&PROJECT.meta.slug)||"project")+".json";a.click();};
 $("#import").onclick=()=>$("#file").click();

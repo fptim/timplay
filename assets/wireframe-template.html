@@ -134,9 +134,21 @@ function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt
 $("#dtDesktop").onclick=()=>{device="desktop";wf.device=device;persist();render();};
 $("#dtMobile").onclick=()=>{device="mobile";wf.device=device;persist();render();};
 
-const LS="timplay:wf:"+((PROJECT.meta&&PROJECT.meta.slug)||"wf");
-function persist(){try{localStorage.setItem(LS,JSON.stringify(PROJECT.wireframe));}catch(e){}}
-(function restore(){try{const s=localStorage.getItem(LS);if(s){const o=JSON.parse(s);if(o.screens){Object.assign(wf,o);device=wf.device||device;current=wf.screens[0]?.id;}}}catch(e){}})();
+const LS="timplay:project:"+((PROJECT.meta&&PROJECT.meta.slug)||"default");
+function persist(){try{localStorage.setItem(LS,JSON.stringify(PROJECT));}catch(e){}}
+function syncFromShared(o){ // replace each stage's contents in place (keeps `wf` alias valid)
+  if(!o)return false;
+  for(const k of ['meta','prd','features','userflow','wireframe']){
+    if(o[k]==null)continue;
+    const cur=PROJECT[k];
+    if(cur&&typeof cur==='object'&&!Array.isArray(cur)){for(const kk of Object.keys(cur))delete cur[kk];Object.assign(cur,o[k]);}
+    else PROJECT[k]=o[k];
+  }
+  device=wf.device||device; if(!screenById(current))current=wf.screens[0]?.id;
+  return true;
+}
+(function restore(){try{const s=localStorage.getItem(LS);if(s)syncFromShared(JSON.parse(s));}catch(e){}})();
+window.addEventListener("storage",e=>{if(e.key!==LS||!e.newValue)return;try{syncFromShared(JSON.parse(e.newValue));render();}catch(err){}});
 $("#export").onclick=()=>{const blob=new Blob([JSON.stringify(PROJECT,null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=((PROJECT.meta&&PROJECT.meta.slug)||"project")+".json";a.click();};
 $("#import").onclick=()=>$("#file").click();

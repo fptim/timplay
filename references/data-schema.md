@@ -105,8 +105,8 @@ the reference UI. Each version is an independent node/edge/section graph.
       "nodes": [
         { "id": "n-1", "type": "start",      "label": "시작",        "sectionId": "sec-1", "x": 40,  "y": 60 },
         { "id": "n-2", "type": "sectionTop", "label": "랜딩 페이지",  "sectionId": "sec-1", "x": 220, "y": 60 },
-        { "id": "n-3", "type": "page",       "label": "로그인",      "sectionId": "sec-1", "x": 420, "y": 110 },
-        { "id": "n-4", "type": "action",     "label": "주문 입력",   "sectionId": "sec-1", "x": 420, "y": 30 }
+        { "id": "n-3", "type": "page",       "label": "로그인",      "sectionId": "sec-1", "x": 420, "y": 110, "ref": { "type": "feature", "id": "F-1" } },
+        { "id": "n-4", "type": "action",     "label": "주문 입력",   "sectionId": "sec-1", "x": 420, "y": 30,  "ref": { "type": "spec", "id": "S-1" } }
       ],
       "edges": [ { "id": "e-1", "from": "n-1", "to": "n-2" } ]
     }
@@ -116,6 +116,12 @@ the reference UI. Each version is an independent node/edge/section graph.
 
 Node `type` ∈ `start` | `sectionTop` (섹션 최상위 페이지) | `page` | `action` (행동).
 `x`/`y` are canvas pixel coordinates. `page` nodes become wireframe screens in stage 4.
+
+`ref` (optional) links a node to a feature or spec from stage 2:
+`{ "type": "feature" | "spec", "id": "<feature or spec id>" }`. In the userflow HTML the node's
+✎ button opens that feature/spec in an editable drawer; edits write back to `features.*` and are
+the SAME data the 기능명세서 page shows — so editing in either place stays in sync. Keep `ref` ids
+valid against `features`; a dangling `ref` simply shows the link picker again.
 
 ## wireframe (stage 4)
 

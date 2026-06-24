@@ -296,10 +296,24 @@ function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt
 $("#addReq").onclick=()=>{const id=nextId("R");data.requirements.push({id,title:"새 요구사항",order:data.requirements.length,features:[]});selReq=id;sel=null;persist();renderAll();};
 $("#addFeat").onclick=()=>{const req=reqById(selReq);if(!req){alert("먼저 요구사항을 선택하세요.");return;}const id=nextId("F");req.features.push({id,title:"새 기능",order:req.features.length,roleId:roles[0]?.id||null,status:"todo",importance:"medium",description:"",acceptanceCriteria:[],specs:[]});sel={type:'feature',id};persist();renderAll();};
 
-// persistence + import/export
-const LS="timplay:"+((PROJECT.meta&&PROJECT.meta.slug)||"features");
+// shared persistence — whole project under one key so all timplay pages stay in sync
+const LS="timplay:project:"+((PROJECT.meta&&PROJECT.meta.slug)||"default");
 function persist(){try{localStorage.setItem(LS,JSON.stringify(PROJECT));}catch(e){}}
-(function restore(){try{const s=localStorage.getItem(LS);if(s){const o=JSON.parse(s);if(o.features){data.requirements=o.features.requirements;selReq=data.requirements[0]?.id||null;}}}catch(e){}})();
+function syncFromShared(o){ // replace each stage's contents in place (keeps `data`/alias references valid)
+  if(!o)return false;
+  for(const k of ['meta','prd','features','userflow','wireframe']){
+    if(o[k]==null)continue;
+    const cur=PROJECT[k];
+    if(cur&&typeof cur==='object'&&!Array.isArray(cur)){for(const kk of Object.keys(cur))delete cur[kk];Object.assign(cur,o[k]);}
+    else PROJECT[k]=o[k];
+  }
+  return true;
+}
+(function restore(){try{const s=localStorage.getItem(LS);if(s){syncFromShared(JSON.parse(s));if(!reqById(selReq))selReq=data.requirements[0]?.id||null;}}catch(e){}})();
+window.addEventListener("storage",e=>{ // another timplay page (or tab) changed the project
+  if(e.key!==LS||!e.newValue)return;
+  try{syncFromShared(JSON.parse(e.newValue));if(!reqById(selReq))selReq=data.requirements[0]?.id||null;renderAll();}catch(err){}
+});
 $("#export").onclick=()=>{
   const blob=new Blob([JSON.stringify(PROJECT,null,2)],{type:"application/json"});
   const a=document.createElement("a");a.href=URL.createObjectURL(blob);

@@ -79,11 +79,16 @@ expandable specs, and JSON import/export — matching the reference UI.
 
 Visualizes how feature screens connect. Built from nodes (`start`, `sectionTop`, `page`, `action`),
 edges (흐름), and sections (섹션 bands). Supports multiple versions (원본 + 수정본). The rendered page
-has the legend, drag-to-move nodes, double-click rename, link mode for drawing edges, and JSON import/export.
+has the legend, drag-to-move nodes, double-click rename, link mode for drawing edges, click-to-delete
+edges, deletable sections/versions, and JSON import/export.
 
 1. Group features into sections; lay out nodes with `x`/`y` coordinates and connect with edges.
    `page` nodes become wireframe screens in stage 4. Write `userflow` per the schema.
-2. Render: `scripts/render.py <project-dir> userflow` → writes `userflow.html`.
+2. Link nodes to features/specs with each node's `ref` (`{type, id}` → a stage-2 feature or spec).
+   In the HTML, a node's ✎ button opens that feature/spec in an editable drawer; those edits are the
+   same data the 기능명세서 shows, so the two stages stay in sync. Set `ref` for `page`/`action`
+   nodes that correspond to a feature whenever possible.
+3. Render: `scripts/render.py <project-dir> userflow` → writes `userflow.html`.
 
 ### Stage 4 — Wireframe (clickable shadcn-style prototype)
 
@@ -97,18 +102,33 @@ mobile layout = bottom tab bar. The prototype is clickable (button/card/list `li
    Write `wireframe` per the schema.
 2. Render: `scripts/render.py <project-dir> wireframe` → writes `wireframe.html`.
 
-## Editing round-trip
+## One source of truth — edit once, reflect everywhere
 
-Every HTML stage embeds its data inline and has **불러오기 (Import)** / **내보내기 (Export)** buttons.
-When the user edits in the browser (reorder, rename, move nodes, toggle device) and exports the
-updated `project.json`, take that file as the new source of truth: overwrite the project's
-`project.json` with it, then re-render any downstream stages so everything stays consistent.
+`project.json` is the single source of truth, and **every** rendered page embeds the **whole**
+project (not just its own stage). Treat any edit — wherever it happens — as a change to that one
+source, then propagate it to all documents:
+
+- **A change to one stage can affect others.** Editing a feature's title/spec changes what the
+  userflow node drawer and (if referenced) the wireframe show; changing roles in the PRD changes
+  feature role options. After updating `project.json`, re-render everything in one step:
+  `scripts/render.py <project-dir> all` (renders every stage that has content). Also re-render
+  `prd.md` if the PRD changed.
+- **In the browser, pages already self-sync.** All timplay HTML pages share one `localStorage`
+  key (`timplay:project:<slug>`), so an edit in 기능명세서 and an edit via a 유저플로우 node drawer
+  update each other live across open tabs. The userflow node ✎ drawer edits the very same feature
+  data as the 기능명세서.
+
+**Edit round-trip with the user:** every page has **불러오기 (Import)** / **내보내기 (Export)**.
+When the user edits in the browser and exports the updated `project.json`, take that file as the new
+source of truth: overwrite the project's `project.json`, then `render.py <project-dir> all` so every
+document reflects it.
 
 ## Scripts
 
 - `scripts/init_project.py "<name>" [--path .] [--slug ..] [--language ko]` — scaffold a project folder + `project.json`.
-- `scripts/render.py <project-dir> <features|userflow|wireframe>` — inject the relevant `project.json`
-  slice into the matching `assets/*-template.html` and write the stage's HTML into the project folder.
+- `scripts/render.py <project-dir> <features|userflow|wireframe|all>` — embed the full `project.json`
+  into the matching `assets/*-template.html` and write the stage's HTML into the project folder. Use
+  `all` to re-render every stage that has content (the default after any data change).
   (PRD has no render step — write `prd.md` directly.)
 
 The HTML pages load Tailwind and SortableJS from CDNs, so viewing them needs internet access.
