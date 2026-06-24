@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>와이어프레임</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<style>
+  body{font-family:Inter,system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif}
+  /* shadcn-ish tokens */
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;height:2.25rem;padding:0 .9rem;
+    border-radius:.5rem;font-size:.875rem;font-weight:500;cursor:pointer;transition:.12s}
+  .btn-primary{background:#18181b;color:#fff}.btn-primary:hover{background:#27272a}
+  .btn-secondary{background:#f4f4f5;color:#18181b}.btn-secondary:hover{background:#e4e4e7}
+  .btn-ghost{background:transparent;color:#18181b}.btn-ghost:hover{background:#f4f4f5}
+  .btn-destructive{background:#dc2626;color:#fff}.btn-destructive:hover{background:#b91c1c}
+  .inp{width:100%;height:2.25rem;border:1px solid #e4e4e7;border-radius:.5rem;padding:0 .75rem;font-size:.875rem}
+  .card{border:1px solid #e4e4e7;border-radius:.75rem;padding:1rem;background:#fff}
+</style>
+</head>
+<body class="bg-zinc-50 text-zinc-900">
+<header class="h-14 border-b border-zinc-200 bg-white flex items-center px-4 gap-3 sticky top-0 z-20">
+  <span class="w-6 h-6 rounded bg-violet-600"></span>
+  <span id="pname" class="font-medium truncate"></span>
+  <nav class="ml-3 flex items-center gap-1 text-sm text-zinc-400">
+    <a href="prd.md" class="px-2 py-1 rounded hover:bg-zinc-100">PRD</a><span>·</span>
+    <a href="features.html" class="px-2 py-1 rounded hover:bg-zinc-100">기능명세서</a><span>·</span>
+    <a href="userflow.html" class="px-2 py-1 rounded hover:bg-zinc-100">유저플로우</a><span>·</span>
+    <a href="wireframe.html" class="px-2 py-1 rounded bg-zinc-100 text-zinc-900 font-medium">와이어프레임</a>
+  </nav>
+  <div class="ml-auto flex items-center gap-2">
+    <div class="flex rounded-md border border-zinc-200 overflow-hidden text-sm">
+      <button id="dtDesktop" class="px-3 py-1.5">데스크탑</button>
+      <button id="dtMobile" class="px-3 py-1.5 border-l border-zinc-200">모바일</button>
+    </div>
+    <input id="file" type="file" accept="application/json" class="hidden">
+    <button id="import" class="text-sm px-3 py-1.5 rounded-md border border-zinc-200 hover:bg-zinc-50">불러오기</button>
+    <button id="export" class="text-sm px-3 py-1.5 rounded-md bg-violet-600 text-white hover:bg-violet-700">내보내기</button>
+  </div>
+</header>
+
+<div class="flex h-[calc(100vh-3.5rem)]">
+  <aside class="w-56 border-r border-zinc-200 bg-white p-3 overflow-auto">
+    <h2 class="text-xs font-medium text-zinc-400 px-2 mb-2">화면 목록</h2>
+    <ul id="screenList" class="space-y-0.5"></ul>
+  </aside>
+  <div class="flex-1 overflow-auto grid place-items-center p-8 bg-zinc-100">
+    <div id="frame"></div>
+  </div>
+</div>
+
+<script>
+const PROJECT=__TIMPLAY_DATA__;
+const $=(s,r=document)=>r.querySelector(s);
+const wf=PROJECT.wireframe;
+$("#pname").textContent=(PROJECT.meta&&PROJECT.meta.productName)||"와이어프레임";
+let device=wf.device||"desktop";
+let current=wf.screens[0]?.id;
+const screenById=id=>wf.screens.find(s=>s.id===id);
+
+function el(node){
+  switch(node.type){
+    case "heading": return `<h2 class="text-xl font-semibold mb-1">${esc(node.text)}</h2>`;
+    case "text":    return `<p class="text-sm text-zinc-500 mb-1">${esc(node.text)}</p>`;
+    case "divider": return `<hr class="my-3 border-zinc-200">`;
+    case "input":   return `<label class="block text-sm mb-3"><span class="text-zinc-600 mb-1 block">${esc(node.label||"")}</span>
+                      <input class="inp" type="${node.inputType||'text'}" placeholder="${esc(node.placeholder||'')}"></label>`;
+    case "image":   return `<div class="rounded-lg bg-zinc-100 border border-dashed border-zinc-300 grid place-items-center text-zinc-400 text-xs mb-3" style="height:${node.height||120}px">${esc(node.text||'이미지')}</div>`;
+    case "button":  return `<button class="btn btn-${node.variant||'secondary'} mb-2 mr-2" ${node.linkTo?`data-link="${node.linkTo}"`:""}>${esc(node.text)}</button>`;
+    case "list":    return `<ul class="divide-y divide-zinc-100 border border-zinc-200 rounded-lg mb-3">${
+                      (node.items||[]).map(it=>`<li class="px-3 py-2.5 text-sm flex justify-between items-center ${it.linkTo?'cursor-pointer hover:bg-zinc-50':''}" ${it.linkTo?`data-link="${it.linkTo}"`:""}><span>${esc(it.text)}</span>${it.linkTo?'<span class="text-zinc-300">›</span>':''}</li>`).join("")}</ul>`;
+    case "card":    return `<div class="card mb-3 ${node.linkTo?'cursor-pointer hover:border-zinc-300':''}" ${node.linkTo?`data-link="${node.linkTo}"`:""}>
+                      ${node.title?`<div class="font-medium mb-1">${esc(node.title)}</div>`:""}
+                      <div class="text-sm text-zinc-500">${esc(node.text||"")}</div></div>`;
+    default: return "";
+  }
+}
+
+function screenBody(s){
+  return `<div class="space-y-0">${(s.elements||[]).map(el).join("")}</div>`;
+}
+
+function render(){
+  $("#dtDesktop").className="px-3 py-1.5"+(device==="desktop"?" bg-zinc-900 text-white":"");
+  $("#dtMobile").className="px-3 py-1.5 border-l border-zinc-200"+(device==="mobile"?" bg-zinc-900 text-white":"");
+  // screen list
+  const sl=$("#screenList"); sl.innerHTML="";
+  wf.screens.forEach(s=>{
+    const li=document.createElement("li");
+    li.className="px-2 py-1.5 rounded text-sm cursor-pointer truncate "+(s.id===current?"bg-violet-50 text-violet-700":"hover:bg-zinc-50");
+    li.textContent=s.title; li.onclick=()=>{current=s.id;render();};
+    sl.appendChild(li);
+  });
+  const s=screenById(current)||wf.screens[0]; if(!s){$("#frame").innerHTML="";return;}
+  const nav=(wf.nav||[]);
+  if(device==="desktop"){
+    $("#frame").innerHTML=`
+    <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-zinc-200" style="width:960px;height:620px;display:flex;flex-direction:column">
+      <div class="h-12 border-b border-zinc-200 flex items-center px-4 gap-4 shrink-0">
+        <span class="w-5 h-5 rounded bg-violet-600"></span>
+        <span class="font-medium text-sm">${esc((PROJECT.meta&&PROJECT.meta.productName)||"")}</span>
+        <div class="ml-auto flex gap-3 text-sm text-zinc-500">${nav.map(n=>`<span class="cursor-pointer hover:text-zinc-900" data-link="${n.screenId}">${esc(n.label)}</span>`).join("")}</div>
+      </div>
+      <div class="flex flex-1 min-h-0">
+        <div class="w-48 border-r border-zinc-200 p-3 space-y-1 shrink-0">
+          ${nav.map(n=>`<div class="px-2 py-1.5 rounded text-sm cursor-pointer ${n.screenId===current?'bg-zinc-100 font-medium':'text-zinc-500 hover:bg-zinc-50'}" data-link="${n.screenId}">${esc(n.label)}</div>`).join("")}
+        </div>
+        <div class="flex-1 overflow-auto p-6">
+          <h1 class="text-lg font-semibold mb-4 text-zinc-400">${esc(s.title)}</h1>
+          ${screenBody(s)}
+        </div>
+      </div>
+    </div>`;
+  } else {
+    $("#frame").innerHTML=`
+    <div class="bg-white rounded-[2rem] shadow-lg border-[6px] border-zinc-900 overflow-hidden" style="width:340px;height:680px;display:flex;flex-direction:column">
+      <div class="h-10 flex items-center justify-center text-xs text-zinc-400 shrink-0">${esc(s.title)}</div>
+      <div class="flex-1 overflow-auto px-4 pb-4">${screenBody(s)}</div>
+      <div class="h-14 border-t border-zinc-200 flex items-center justify-around shrink-0">
+        ${(nav.length?nav:wf.screens.slice(0,4).map(x=>({screenId:x.id,label:x.title}))).slice(0,5).map(n=>`
+          <div class="flex flex-col items-center text-[10px] cursor-pointer ${n.screenId===current?'text-violet-600':'text-zinc-400'}" data-link="${n.screenId}">
+            <span class="w-5 h-5 rounded ${n.screenId===current?'bg-violet-600':'bg-zinc-300'} mb-0.5"></span>${esc(n.label)}</div>`).join("")}
+      </div>
+    </div>`;
+  }
+  // wire up navigation
+  $("#frame").querySelectorAll("[data-link]").forEach(b=>b.onclick=e=>{
+    e.stopPropagation();const t=b.getAttribute("data-link");
+    if(screenById(t)){current=t;render();}
+  });
+}
+
+function esc(s){return String(s??"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+$("#dtDesktop").onclick=()=>{device="desktop";wf.device=device;persist();render();};
+$("#dtMobile").onclick=()=>{device="mobile";wf.device=device;persist();render();};
+
+const LS="timplay:wf:"+((PROJECT.meta&&PROJECT.meta.slug)||"wf");
+function persist(){try{localStorage.setItem(LS,JSON.stringify(PROJECT.wireframe));}catch(e){}}
+(function restore(){try{const s=localStorage.getItem(LS);if(s){const o=JSON.parse(s);if(o.screens){Object.assign(wf,o);device=wf.device||device;current=wf.screens[0]?.id;}}}catch(e){}})();
+$("#export").onclick=()=>{const blob=new Blob([JSON.stringify(PROJECT,null,2)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=((PROJECT.meta&&PROJECT.meta.slug)||"project")+".json";a.click();};
+$("#import").onclick=()=>$("#file").click();
+$("#file").onchange=e=>{const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const o=JSON.parse(r.result);Object.assign(PROJECT,o);if(o.wireframe){Object.assign(wf,o.wireframe);device=wf.device||device;current=wf.screens[0]?.id;}persist();render();}catch(err){alert("JSON 파싱 실패: "+err.message);}};
+  r.readAsText(f);};
+
+render();
+</script>
+</body>
+</html>
