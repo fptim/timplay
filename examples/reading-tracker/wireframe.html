@@ -50,7 +50,7 @@
 </div>
 
 <script>
-const PROJECT={"meta": {"productName": "초보 독자를 위한 독서 기록 앱", "slug": "reading-tracker", "language": "ko", "createdAt": "2026-06-24", "updatedAt": 1782302500595}, "prd": {"overview": {"oneLiner": "읽은 책을 쉽게 기록하고 독서 습관을 이어가도록 돕는 초보 독자용 앱", "goals": ["검색 한 번으로 책 정보를 자동 입력해 기록 마찰을 없앤다", "진척도와 통계로 독서 동기를 유지한다", "첫 4주 재방문율을 끌어올린다"], "background": "초보 독자는 기록을 시작해도 입력이 번거로워 금방 그만둔다. 가벼운 자동화로 습관 형성을 돕는다."}, "coreValue": {"problem": "책을 읽어도 기록이 귀찮아 흐지부지되고, 무엇을 얼마나 읽었는지 남지 않는다.", "solution": "ISBN·제목 검색으로 표지·저자를 자동 채우고, 별점·짧은 감상만으로 1분 안에 기록을 마친다.", "differentiation": "범용 메모앱과 달리 독서에 특화된 자동 입력과 진척도 통계를 기본 제공한다."}, "targetScenario": {"userGroups": [{"name": "초보 독자", "description": "한 달 1~2권, 기록 습관이 없고 입력 마찰에 민감"}, {"name": "기록 애호가", "description": "통계·회고를 즐기며 데이터를 꾸준히 남김"}], "scenarios": [{"title": "첫 기록", "story": "앱을 켜고 방금 다 읽은 책을 제목으로 검색해 선택하면 정보가 자동 입력된다. 별점과 한 줄 감상을 남기고 저장하면 서재에 첫 책이 꽂힌다."}]}, "metrics": {"kpis": [{"name": "4주 재방문율", "target": "35% 이상"}, {"name": "첫 기록까지 시간", "target": "설치 후 3분 이내"}], "risks": ["책 메타데이터 검색 정확도", "초기 빈 화면의 동기 부여 부족"], "openIssues": ["전자책 연동 범위", "소셜 공유 우선순위"]}, "attributes": {"category": "라이프스타일 / 생산성", "roles": [{"id": "reader", "name": "독자"}, {"id": "admin", "name": "관리자"}], "environments": ["web", "ios"]}}, "features": {"requirements": [{"id": "R-1", "title": "책 검색 및 기록", "order": 0, "features": [{"id": "F-1", "title": "책 검색 기능", "order": 0, "roleId": "reader", "status": "todo", "importance": "high", "description": "제목·저자·ISBN으로 책을 검색하고 선택하면 표지·저자 등 기본 정보가 자동 입력된다.", "acceptanceCriteria": [{"text": "제목·저자·ISBN으로 검색할 수 있다", "done": false}, {"text": "검색 결과 선택 시 기본 정보가 자동 입력된다", "done": false}], "specs": [{"id": "S-1", "title": "책 상세 정보 조회", "order": 0, "description": "선택한 책의 표지·저자·출간일·소개를 상세 화면에 보여준다."}, {"id": "S-2", "title": "검색 자동완성", "order": 1, "description": "두 글자 이상 입력 시 후보를 자동완성으로 제안한다."}]}, {"id": "F-2", "title": "감상 및 별점 기록", "order": 1, "roleId": "reader", "status": "todo", "importance": "medium", "description": "책마다 별점과 짧은 감상을 남기고 언제든 편집한다.", "acceptanceCriteria": [{"text": "0.5 단위 별점을 줄 수 있다", "done": false}], "specs": [{"id": "S-3", "title": "감상 자동 저장", "order": 0, "description": "입력 중 자동 저장되어 이탈해도 유실되지 않는다."}]}]}, {"id": "R-2", "title": "독서 진척도 및 통계", "order": 1, "features": [{"id": "F-3", "title": "진척도 기록", "order": 0, "roleId": "reader", "status": "todo", "importance": "high", "description": "읽기 시작일·완료일과 현재 페이지를 기록해 진행률을 보여준다.", "acceptanceCriteria": [{"text": "현재 페이지로 진행률(%)이 계산된다", "done": false}], "specs": []}]}]}, "userflow": {"activeVersionId": "uf-1", "versions": [{"id": "uf-1", "name": "기본 플로우", "createdAt": "2026-06-24", "parentId": null, "sections": [{"id": "sec-1", "title": "온보딩", "order": 0}, {"id": "sec-2", "title": "서재", "order": 1}], "nodes": [{"id": "n-1", "type": "start", "label": "시작", "sectionId": "sec-1", "x": 40, "y": 70}, {"id": "n-2", "type": "sectionTop", "label": "홈 / 서재", "sectionId": "sec-2", "x": 260, "y": 70, "ref": {"type": "feature", "id": "F-3"}}, {"id": "n-3", "type": "page", "label": "책 검색", "sectionId": "sec-2", "x": 500, "y": 30, "ref": {"type": "feature", "id": "F-1"}}, {"id": "n-4", "type": "page", "label": "책 상세 / 기록", "sectionId": "sec-2", "x": 500, "y": 150, "ref": {"type": "spec", "id": "S-1"}}, {"id": "n-5", "type": "action", "label": "기록 저장", "sectionId": "sec-2", "x": 740, "y": 150}], "edges": [{"id": "e-1", "from": "n-1", "to": "n-2"}, {"id": "e-2", "from": "n-2", "to": "n-3"}, {"id": "e-3", "from": "n-3", "to": "n-4"}, {"id": "e-4", "from": "n-4", "to": "n-5"}]}]}, "wireframe": {"userflowVersionId": "uf-1", "device": "desktop", "nav": [{"screenId": "n-2", "label": "서재"}, {"screenId": "n-3", "label": "검색"}], "screens": [{"id": "n-2", "title": "홈 / 서재", "elements": [{"type": "heading", "text": "내 서재"}, {"type": "text", "text": "올해 읽은 책 12권 · 진행 중 2권"}, {"type": "button", "text": "+ 책 추가", "variant": "primary", "linkTo": "n-3"}, {"type": "list", "items": [{"text": "데미안 · 80%", "linkTo": "n-4"}, {"text": "사피엔스 · 35%", "linkTo": "n-4"}]}]}, {"id": "n-3", "title": "책 검색", "elements": [{"type": "heading", "text": "책 검색"}, {"type": "input", "label": "제목 · 저자 · ISBN", "placeholder": "예: 데미안"}, {"type": "list", "items": [{"text": "데미안 — 헤르만 헤세", "linkTo": "n-4"}, {"text": "수레바퀴 아래서 — 헤르만 헤세", "linkTo": "n-4"}]}]}, {"id": "n-4", "title": "책 상세 / 기록", "elements": [{"type": "heading", "text": "데미안"}, {"type": "text", "text": "헤르만 헤세 · 1919"}, {"type": "image", "text": "표지", "height": 140}, {"type": "input", "label": "한 줄 감상", "placeholder": "기억하고 싶은 문장이나 느낌"}, {"type": "button", "text": "기록 저장", "variant": "primary", "linkTo": "n-2"}, {"type": "button", "text": "취소", "variant": "ghost", "linkTo": "n-2"}]}]}};
+const PROJECT={"meta": {"productName": "초보 독자를 위한 독서 기록 앱", "slug": "reading-tracker", "language": "ko", "createdAt": "2026-06-24", "updatedAt": 1782700445404}, "prd": {"overview": {"oneLiner": "읽은 책을 쉽게 기록하고 독서 습관을 이어가도록 돕는 초보 독자용 앱", "goals": ["검색 한 번으로 책 정보를 자동 입력해 기록 마찰을 없앤다", "진척도와 통계로 독서 동기를 유지한다", "첫 4주 재방문율을 끌어올린다"], "background": "초보 독자는 기록을 시작해도 입력이 번거로워 금방 그만둔다. 가벼운 자동화로 습관 형성을 돕는다."}, "coreValue": {"problem": "책을 읽어도 기록이 귀찮아 흐지부지되고, 무엇을 얼마나 읽었는지 남지 않는다.", "solution": "ISBN·제목 검색으로 표지·저자를 자동 채우고, 별점·짧은 감상만으로 1분 안에 기록을 마친다.", "differentiation": "범용 메모앱과 달리 독서에 특화된 자동 입력과 진척도 통계를 기본 제공한다."}, "targetScenario": {"userGroups": [{"name": "초보 독자", "description": "한 달 1~2권, 기록 습관이 없고 입력 마찰에 민감"}, {"name": "기록 애호가", "description": "통계·회고를 즐기며 데이터를 꾸준히 남김"}], "scenarios": [{"title": "첫 기록", "story": "앱을 켜고 방금 다 읽은 책을 제목으로 검색해 선택하면 정보가 자동 입력된다. 별점과 한 줄 감상을 남기고 저장하면 서재에 첫 책이 꽂힌다."}]}, "metrics": {"kpis": [{"name": "4주 재방문율", "target": "35% 이상"}, {"name": "첫 기록까지 시간", "target": "설치 후 3분 이내"}], "risks": ["책 메타데이터 검색 정확도", "초기 빈 화면의 동기 부여 부족"], "openIssues": ["전자책 연동 범위", "소셜 공유 우선순위"]}, "attributes": {"category": "라이프스타일 / 생산성", "roles": [{"id": "reader", "name": "독자"}, {"id": "admin", "name": "관리자"}], "environments": ["web", "ios"]}}, "features": {"requirements": [{"id": "R-1", "title": "책 검색 및 기록", "order": 0, "features": [{"id": "F-1", "title": "책 검색 기능", "order": 0, "roleId": "reader", "status": "todo", "importance": "high", "description": "제목·저자·ISBN으로 책을 검색하고 선택하면 표지·저자 등 기본 정보가 자동 입력된다.", "acceptanceCriteria": [{"text": "제목·저자·ISBN으로 검색할 수 있다", "done": false}, {"text": "검색 결과 선택 시 기본 정보가 자동 입력된다", "done": false}], "specs": [{"id": "S-1", "title": "책 상세 정보 조회", "order": 0, "description": "선택한 책의 표지·저자·출간일·소개를 상세 화면에 보여준다."}, {"id": "S-2", "title": "검색 자동완성", "order": 1, "description": "두 글자 이상 입력 시 후보를 자동완성으로 제안한다."}]}, {"id": "F-2", "title": "감상 및 별점 기록", "order": 1, "roleId": "reader", "status": "todo", "importance": "medium", "description": "책마다 별점과 짧은 감상을 남기고 언제든 편집한다.", "acceptanceCriteria": [{"text": "0.5 단위 별점을 줄 수 있다", "done": false}], "specs": [{"id": "S-3", "title": "감상 자동 저장", "order": 0, "description": "입력 중 자동 저장되어 이탈해도 유실되지 않는다."}]}]}, {"id": "R-2", "title": "독서 진척도 및 통계", "order": 1, "features": [{"id": "F-3", "title": "진척도 기록", "order": 0, "roleId": "reader", "status": "todo", "importance": "high", "description": "읽기 시작일·완료일과 현재 페이지를 기록해 진행률을 보여준다.", "acceptanceCriteria": [{"text": "현재 페이지로 진행률(%)이 계산된다", "done": false}], "specs": []}]}]}, "userflow": {"activeVersionId": "uf-1", "versions": [{"id": "uf-1", "name": "기본 플로우", "createdAt": "2026-06-24", "parentId": null, "sections": [{"id": "sec-1", "title": "온보딩", "order": 0}, {"id": "sec-2", "title": "서재", "order": 1}], "nodes": [{"id": "n-1", "type": "start", "label": "시작", "sectionId": "sec-1", "x": 40, "y": 70}, {"id": "n-2", "type": "sectionTop", "label": "홈 / 서재", "sectionId": "sec-2", "x": 260, "y": 70, "ref": {"type": "feature", "id": "F-3"}}, {"id": "n-3", "type": "page", "label": "책 검색", "sectionId": "sec-2", "x": 500, "y": 30, "ref": {"type": "feature", "id": "F-1"}}, {"id": "n-4", "type": "page", "label": "책 상세 / 기록", "sectionId": "sec-2", "x": 500, "y": 150, "ref": {"type": "spec", "id": "S-1"}}, {"id": "n-5", "type": "action", "label": "기록 저장", "sectionId": "sec-2", "x": 740, "y": 150}], "edges": [{"id": "e-1", "from": "n-1", "to": "n-2"}, {"id": "e-2", "from": "n-2", "to": "n-3"}, {"id": "e-3", "from": "n-3", "to": "n-4"}, {"id": "e-4", "from": "n-4", "to": "n-5"}]}]}, "wireframe": {"userflowVersionId": "uf-1", "device": "desktop", "nav": [{"screenId": "n-2", "label": "서재"}, {"screenId": "n-3", "label": "검색"}], "screens": [{"id": "w-landing", "title": "랜딩", "layout": "landing", "elements": [{"type": "heading", "text": "읽은 책, 1분이면 기록 끝"}, {"type": "text", "text": "ISBN·제목 검색으로 표지와 저자를 자동 입력. 별점과 한 줄 감상만 남기세요."}, {"type": "row", "children": [{"type": "button", "text": "무료로 시작하기", "variant": "primary", "linkTo": "w-login"}, {"type": "button", "text": "둘러보기", "variant": "ghost", "linkTo": "n-2"}]}]}, {"id": "w-login", "title": "로그인", "layout": "centered", "elements": [{"type": "input", "label": "이메일", "placeholder": "you@example.com"}, {"type": "input", "label": "비밀번호", "inputType": "password"}, {"type": "button", "text": "로그인", "variant": "primary", "linkTo": "n-2"}, {"type": "divider"}, {"type": "button", "text": "회원가입", "variant": "ghost", "linkTo": "n-2"}]}, {"id": "n-2", "title": "홈 / 서재", "layout": "app", "elements": [{"type": "heading", "text": "내 서재"}, {"type": "grid", "cols": 3, "children": [{"type": "stat", "label": "올해 읽은 책", "value": "12권", "delta": "+3"}, {"type": "stat", "label": "진행 중", "value": "2권"}, {"type": "stat", "label": "평균 별점", "value": "4.2"}]}, {"type": "row", "children": [{"type": "searchbar", "placeholder": "내 책 검색"}, {"type": "button", "text": "+ 책 추가", "variant": "primary", "linkTo": "n-3"}]}, {"type": "subheading", "text": "최근 기록"}, {"type": "table", "columns": ["제목", "저자", "진행률", "별점"], "rows": [["데미안", "헤르만 헤세", "80%", "★★★★☆"], ["사피엔스", "유발 하라리", "35%", "★★★★★"]]}]}, {"id": "n-3", "title": "책 검색", "layout": "app", "elements": [{"type": "searchbar", "placeholder": "제목 · 저자 · ISBN (예: 데미안)"}, {"type": "tabs", "items": ["전체", "소설", "비소설"], "active": 0}, {"type": "list", "items": [{"text": "데미안 — 헤르만 헤세", "linkTo": "n-4"}, {"text": "수레바퀴 아래서 — 헤르만 헤세", "linkTo": "n-4"}]}]}, {"id": "n-4", "title": "책 상세 / 기록", "layout": "app", "elements": [{"type": "breadcrumb", "items": ["서재", "검색", "데미안"]}, {"type": "row", "children": [{"type": "image", "text": "표지", "height": 160}, {"type": "card", "title": "데미안", "children": [{"type": "text", "text": "헤르만 헤세 · 1919"}, {"type": "badge", "text": "소설", "variant": "info"}, {"type": "badge", "text": "읽는 중", "variant": "warning"}]}]}, {"type": "textarea", "label": "한 줄 감상", "placeholder": "기억하고 싶은 문장이나 느낌", "rows": 3}, {"type": "row", "children": [{"type": "button", "text": "기록 저장", "variant": "primary", "linkTo": "n-2"}, {"type": "button", "text": "취소", "variant": "ghost", "linkTo": "n-2"}]}]}]}};
 const $=(s,r=document)=>r.querySelector(s);
 if(!PROJECT.wireframe||typeof PROJECT.wireframe!=='object')PROJECT.wireframe={device:"desktop",nav:[],screens:[]};
 if(!Array.isArray(PROJECT.wireframe.screens))PROJECT.wireframe.screens=[];
@@ -61,26 +61,66 @@ let device=wf.device||"desktop";
 let current=wf.screens[0]?.id;
 const screenById=id=>wf.screens.find(s=>s.id===id);
 
+const badgeColor=v=>({success:"bg-emerald-100 text-emerald-700",warning:"bg-amber-100 text-amber-700",danger:"bg-red-100 text-red-700",info:"bg-violet-100 text-violet-700"})[v]||"bg-zinc-100 text-zinc-600";
+const alertCls=v=>({success:"border-emerald-200 bg-emerald-50 text-emerald-700",warning:"border-amber-200 bg-amber-50 text-amber-700",danger:"border-red-200 bg-red-50 text-red-700"})[v]||"border-violet-200 bg-violet-50 text-violet-700";
+
+// Render one element. shadcn-style vocabulary; row/grid/card recurse into children.
 function el(node){
+  if(!node||typeof node!=="object")return "";
+  const link=node.linkTo?` data-link="${esc(node.linkTo)}"`:"";
   switch(node.type){
-    case "heading": return `<h2 class="text-xl font-semibold mb-1">${esc(node.text)}</h2>`;
-    case "text":    return `<p class="text-sm text-zinc-500 mb-1">${esc(node.text)}</p>`;
-    case "divider": return `<hr class="my-3 border-zinc-200">`;
-    case "input":   return `<label class="block text-sm mb-3"><span class="text-zinc-600 mb-1 block">${esc(node.label||"")}</span>
-                      <input class="inp" type="${esc(node.inputType||'text')}" placeholder="${esc(node.placeholder||'')}"></label>`;
-    case "image":   return `<div class="rounded-lg bg-zinc-100 border border-dashed border-zinc-300 grid place-items-center text-zinc-400 text-xs mb-3" style="height:${parseInt(node.height,10)||120}px">${esc(node.text||'이미지')}</div>`;
-    case "button":  return `<button class="btn btn-${esc(node.variant||'secondary')} mb-2 mr-2" ${node.linkTo?`data-link="${esc(node.linkTo)}"`:""}>${esc(node.text)}</button>`;
-    case "list":    return `<ul class="divide-y divide-zinc-100 border border-zinc-200 rounded-lg mb-3">${
-                      (node.items||[]).map(it=>`<li class="px-3 py-2.5 text-sm flex justify-between items-center ${it.linkTo?'cursor-pointer hover:bg-zinc-50':''}" ${it.linkTo?`data-link="${esc(it.linkTo)}"`:""}><span>${esc(it.text)}</span>${it.linkTo?'<span class="text-zinc-300">›</span>':''}</li>`).join("")}</ul>`;
-    case "card":    return `<div class="card mb-3 ${node.linkTo?'cursor-pointer hover:border-zinc-300':''}" ${node.linkTo?`data-link="${esc(node.linkTo)}"`:""}>
-                      ${node.title?`<div class="font-medium mb-1">${esc(node.title)}</div>`:""}
-                      <div class="text-sm text-zinc-500">${esc(node.text||"")}</div></div>`;
-    default: return "";
+    case "heading":    return `<h2 class="text-xl font-semibold mb-2">${esc(node.text)}</h2>`;
+    case "subheading": return `<h3 class="text-sm font-semibold text-zinc-700 mt-2 mb-1">${esc(node.text)}</h3>`;
+    case "text":       return `<p class="text-sm text-zinc-500 mb-2">${esc(node.text)}</p>`;
+    case "divider":    return `<hr class="my-3 border-zinc-200">`;
+    case "spacer":     return `<div style="height:${parseInt(node.height,10)||16}px"></div>`;
+    case "breadcrumb": return `<div class="text-xs text-zinc-400 mb-3">${(node.items||[]).map(esc).join(' <span class="text-zinc-300">/</span> ')}</div>`;
+    case "searchbar":  return `<div class="relative mb-3"><input class="inp" style="padding-left:1.9rem" placeholder="${esc(node.placeholder||'검색')}"><span class="absolute left-2.5 top-1.5 text-zinc-400">⌕</span></div>`;
+    case "input":      return `<label class="block text-sm mb-3"><span class="text-zinc-600 mb-1 block">${esc(node.label||"")}</span><input class="inp" type="${esc(node.inputType||'text')}" placeholder="${esc(node.placeholder||'')}"></label>`;
+    case "textarea":   return `<label class="block text-sm mb-3"><span class="text-zinc-600 mb-1 block">${esc(node.label||"")}</span><textarea class="inp" style="height:auto;padding:.5rem .75rem" rows="${parseInt(node.rows,10)||3}" placeholder="${esc(node.placeholder||'')}"></textarea></label>`;
+    case "select":     return `<label class="block text-sm mb-3"><span class="text-zinc-600 mb-1 block">${esc(node.label||"")}</span><select class="inp">${(node.options||[]).map(o=>`<option>${esc(o)}</option>`).join("")}</select></label>`;
+    case "checkbox":   return `<label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" ${node.checked?"checked":""}><span>${esc(node.label||"")}</span></label>`;
+    case "radio":      return `<div class="mb-3 text-sm">${node.label?`<div class="text-zinc-600 mb-1">${esc(node.label)}</div>`:""}${(node.options||[]).map((o,i)=>`<label class="flex items-center gap-2 mb-1"><input type="radio" name="${esc(node.name||'r')}" ${i===0?"checked":""}><span>${esc(o)}</span></label>`).join("")}</div>`;
+    case "image":      return `<div class="rounded-lg bg-zinc-100 border border-dashed border-zinc-300 grid place-items-center text-zinc-400 text-xs mb-3" style="height:${parseInt(node.height,10)||120}px">${esc(node.text||'이미지')}</div>`;
+    case "avatar":     return `<div class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-violet-100 text-violet-700 text-sm font-medium mb-2">${esc((node.text||'U').slice(0,2))}</div>`;
+    case "badge":      return `<span class="inline-block text-xs px-2 py-0.5 rounded-full ${badgeColor(node.variant)} mr-1 mb-1">${esc(node.text)}</span>`;
+    case "tag":        return `<span class="inline-block text-xs px-2 py-0.5 rounded border border-zinc-200 text-zinc-600 mr-1 mb-1">${esc(node.text)}</span>`;
+    case "button":     return `<button class="btn btn-${esc(node.variant||'secondary')} mb-2 mr-2"${link}>${esc(node.text)}</button>`;
+    case "alert":      return `<div class="text-sm rounded-lg border px-3 py-2 mb-3 ${alertCls(node.variant)}">${esc(node.text)}</div>`;
+    case "stat":       return `<div class="card mb-3${node.linkTo?' cursor-pointer hover:border-zinc-300':''}"${link}><div class="text-xs text-zinc-400">${esc(node.label||"")}</div><div class="text-2xl font-semibold mt-1">${esc(node.value??"")}</div>${node.delta?`<div class="text-xs mt-1 ${String(node.delta).trim().startsWith('-')?'text-red-600':'text-emerald-600'}">${esc(node.delta)}</div>`:""}</div>`;
+    case "tabs":       return `<div class="border-b border-zinc-200 mb-3 flex gap-4 text-sm">${(node.items||[]).map((t,i)=>{const o=(typeof t==="object")?t:{label:t};return `<span class="pb-2 -mb-px ${i===(node.active||0)?'border-b-2 border-zinc-900 font-medium':'text-zinc-400 cursor-pointer'}"${o.linkTo?` data-link="${esc(o.linkTo)}"`:""}>${esc(o.label)}</span>`;}).join("")}</div>`;
+    case "table":      return `<div class="border border-zinc-200 rounded-lg overflow-hidden mb-3"><table class="w-full text-sm"><thead class="bg-zinc-50 text-zinc-500"><tr>${(node.columns||[]).map(c=>`<th class="text-left font-medium px-3 py-2">${esc(c)}</th>`).join("")}</tr></thead><tbody>${(node.rows||[]).map(r=>`<tr class="border-t border-zinc-100">${(r||[]).map(c=>`<td class="px-3 py-2">${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    case "list":       return `<ul class="divide-y divide-zinc-100 border border-zinc-200 rounded-lg mb-3">${(node.items||[]).map(it=>`<li class="px-3 py-2.5 text-sm flex justify-between items-center ${it.linkTo?'cursor-pointer hover:bg-zinc-50':''}"${it.linkTo?` data-link="${esc(it.linkTo)}"`:""}><span>${esc(it.text)}</span>${it.linkTo?'<span class="text-zinc-300">›</span>':''}</li>`).join("")}</ul>`;
+    case "card":       return `<div class="card mb-3${node.linkTo?' cursor-pointer hover:border-zinc-300':''}"${link}>${node.title?`<div class="font-medium mb-1">${esc(node.title)}</div>`:""}${node.text?`<div class="text-sm text-zinc-500">${esc(node.text)}</div>`:""}${Array.isArray(node.children)?`<div class="mt-2">${node.children.map(el).join("")}</div>`:""}</div>`;
+    case "row":        return `<div class="flex gap-3 mb-3 items-start flex-wrap">${(node.children||[]).map(c=>`<div class="flex-1" style="min-width:0">${el(c)}</div>`).join("")}</div>`;
+    case "grid":       return `<div class="grid gap-3 mb-3" style="grid-template-columns:repeat(${parseInt(node.cols,10)||2},minmax(0,1fr))">${(node.children||[]).map(el).join("")}</div>`;
+    default:           return "";
   }
 }
 
-function screenBody(s){
-  return `<div class="space-y-0">${(s.elements||[]).map(el).join("")}</div>`;
+function screenBody(s){ return (s.elements||[]).map(el).join(""); }
+
+// Per-screen chrome. layout ∈ app | centered | landing | blank (default app).
+function frame(s){
+  const layout=s.layout||"app", title=esc(s.title), body=screenBody(s);
+  const product=esc((PROJECT.meta&&PROJECT.meta.productName)||"");
+  const nav=wf.nav||[];
+  const topnav=`<div class="h-12 border-b border-zinc-200 flex items-center px-4 gap-4 shrink-0"><span class="w-5 h-5 rounded bg-violet-600"></span><span class="font-medium text-sm">${product}</span><div class="ml-auto flex gap-3 text-sm text-zinc-500">${nav.map(n=>`<span class="cursor-pointer hover:text-zinc-900" data-link="${esc(n.screenId)}">${esc(n.label)}</span>`).join("")}</div></div>`;
+  if(device==="mobile"){
+    const tab=layout==="app"?`<div class="h-14 border-t border-zinc-200 flex items-center justify-around shrink-0">${(nav.length?nav:wf.screens.slice(0,4).map(x=>({screenId:x.id,label:x.title}))).slice(0,5).map(n=>`<div class="flex flex-col items-center text-[10px] cursor-pointer ${n.screenId===current?'text-violet-600':'text-zinc-400'}" data-link="${esc(n.screenId)}"><span class="w-5 h-5 rounded ${n.screenId===current?'bg-violet-600':'bg-zinc-300'} mb-0.5"></span>${esc(n.label)}</div>`).join("")}</div>`:"";
+    const inner=layout==="centered"?`<div class="flex-1 overflow-auto px-4 grid place-items-center"><div class="w-full">${body}</div></div>`:`<div class="flex-1 overflow-auto px-4 pb-4">${body}</div>`;
+    return `<div class="bg-white rounded-[2rem] shadow-lg border-[6px] border-zinc-900 overflow-hidden" style="width:340px;height:680px;display:flex;flex-direction:column"><div class="h-10 flex items-center justify-center text-xs text-zinc-400 shrink-0">${title}</div>${inner}${tab}</div>`;
+  }
+  const W='style="width:960px;height:620px;display:flex;flex-direction:column"';
+  if(layout==="centered")
+    return `<div class="bg-zinc-50 rounded-xl shadow-lg overflow-hidden border border-zinc-200 grid place-items-center" ${W}><div class="card" style="width:100%;max-width:380px"><h1 class="text-lg font-semibold mb-4 text-center">${title}</h1>${body}</div></div>`;
+  if(layout==="landing")
+    return `<div class="bg-white rounded-xl shadow-lg overflow-hidden border border-zinc-200" ${W}>${topnav}<div class="flex-1 overflow-auto p-10">${body}</div></div>`;
+  if(layout==="blank")
+    return `<div class="bg-white rounded-xl shadow-lg overflow-auto border border-zinc-200 p-8" ${W}><h1 class="text-lg font-semibold mb-4">${title}</h1>${body}</div>`;
+  // app (default): top nav + sidebar + content
+  const side=`<div class="w-48 border-r border-zinc-200 p-3 space-y-1 shrink-0">${nav.map(n=>`<div class="px-2 py-1.5 rounded text-sm cursor-pointer ${n.screenId===current?'bg-zinc-100 font-medium':'text-zinc-500 hover:bg-zinc-50'}" data-link="${esc(n.screenId)}">${esc(n.label)}</div>`).join("")}</div>`;
+  return `<div class="bg-white rounded-xl shadow-lg overflow-hidden border border-zinc-200" ${W}>${topnav}<div class="flex flex-1 min-h-0">${side}<div class="flex-1 overflow-auto p-6"><h1 class="text-lg font-semibold mb-4">${title}</h1>${body}</div></div></div>`;
 }
 
 function render(){
@@ -95,37 +135,7 @@ function render(){
     sl.appendChild(li);
   });
   const s=screenById(current)||wf.screens[0]; if(!s){$("#frame").innerHTML='<div class="text-sm text-zinc-400 p-8">화면이 없습니다. 유저플로우의 페이지 노드에서 와이어프레임을 생성하세요.</div>';return;}
-  const nav=(wf.nav||[]);
-  if(device==="desktop"){
-    $("#frame").innerHTML=`
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-zinc-200" style="width:960px;height:620px;display:flex;flex-direction:column">
-      <div class="h-12 border-b border-zinc-200 flex items-center px-4 gap-4 shrink-0">
-        <span class="w-5 h-5 rounded bg-violet-600"></span>
-        <span class="font-medium text-sm">${esc((PROJECT.meta&&PROJECT.meta.productName)||"")}</span>
-        <div class="ml-auto flex gap-3 text-sm text-zinc-500">${nav.map(n=>`<span class="cursor-pointer hover:text-zinc-900" data-link="${esc(n.screenId)}">${esc(n.label)}</span>`).join("")}</div>
-      </div>
-      <div class="flex flex-1 min-h-0">
-        <div class="w-48 border-r border-zinc-200 p-3 space-y-1 shrink-0">
-          ${nav.map(n=>`<div class="px-2 py-1.5 rounded text-sm cursor-pointer ${n.screenId===current?'bg-zinc-100 font-medium':'text-zinc-500 hover:bg-zinc-50'}" data-link="${esc(n.screenId)}">${esc(n.label)}</div>`).join("")}
-        </div>
-        <div class="flex-1 overflow-auto p-6">
-          <h1 class="text-lg font-semibold mb-4 text-zinc-400">${esc(s.title)}</h1>
-          ${screenBody(s)}
-        </div>
-      </div>
-    </div>`;
-  } else {
-    $("#frame").innerHTML=`
-    <div class="bg-white rounded-[2rem] shadow-lg border-[6px] border-zinc-900 overflow-hidden" style="width:340px;height:680px;display:flex;flex-direction:column">
-      <div class="h-10 flex items-center justify-center text-xs text-zinc-400 shrink-0">${esc(s.title)}</div>
-      <div class="flex-1 overflow-auto px-4 pb-4">${screenBody(s)}</div>
-      <div class="h-14 border-t border-zinc-200 flex items-center justify-around shrink-0">
-        ${(nav.length?nav:wf.screens.slice(0,4).map(x=>({screenId:x.id,label:x.title}))).slice(0,5).map(n=>`
-          <div class="flex flex-col items-center text-[10px] cursor-pointer ${n.screenId===current?'text-violet-600':'text-zinc-400'}" data-link="${esc(n.screenId)}">
-            <span class="w-5 h-5 rounded ${n.screenId===current?'bg-violet-600':'bg-zinc-300'} mb-0.5"></span>${esc(n.label)}</div>`).join("")}
-      </div>
-    </div>`;
-  }
+  $("#frame").innerHTML=frame(s);
   // wire up navigation
   $("#frame").querySelectorAll("[data-link]").forEach(b=>b.onclick=e=>{
     e.stopPropagation();const t=b.getAttribute("data-link");

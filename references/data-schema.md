@@ -137,12 +137,11 @@ References one userflow version. Screens are derived from that version's `page` 
     {
       "id": "n-3",                            // matches the userflow node id
       "title": "로그인",
+      "layout": "centered",                   // pick the layout that fits THIS screen (below)
       "elements": [
-        { "type": "heading", "text": "로그인" },
         { "type": "input",   "label": "이메일", "placeholder": "you@example.com" },
         { "type": "input",   "label": "비밀번호", "inputType": "password" },
         { "type": "button",  "text": "로그인", "variant": "primary", "linkTo": "n-2" },
-        { "type": "text",    "text": "계정이 없으신가요?" },
         { "type": "button",  "text": "회원가입", "variant": "ghost", "linkTo": "n-5" }
       ]
     }
@@ -150,6 +149,43 @@ References one userflow version. Screens are derived from that version's `page` 
 }
 ```
 
-Element `type` ∈ `heading` | `text` | `button` | `input` | `image` | `card` | `list` | `divider`.
-`linkTo` (on buttons/cards/list items) points at another screen id to make the prototype clickable.
-`variant` for buttons ∈ `primary` | `secondary` | `ghost` | `destructive`.
+### `screen.layout` — choose per screen so wireframes aren't all dashboards
+
+`layout` ∈ `app` | `centered` | `landing` | `blank` (default `app`). Match it to the screen's role:
+- `app` — in-app screen: top nav + side menu + content. For dashboards, lists, settings, detail pages.
+- `centered` — a single centered card, no chrome. For login, signup, onboarding, payment, simple forms.
+- `landing` — top nav + a wide hero area, no side menu. For marketing/entry pages.
+- `blank` — content only, no chrome. For splash, full-bleed, or embeds.
+
+Do NOT put every screen in `app`; that is what makes wireframes look uniform. A login is `centered`,
+a marketing entry is `landing`, the actual product home is `app`.
+
+### Element vocabulary (shadcn-style)
+
+Pick elements that reflect the planned content, not just heading+text+button.
+
+| type | key fields |
+|---|---|
+| `heading` / `subheading` / `text` | `text` |
+| `divider` / `spacer` | `spacer.height` |
+| `breadcrumb` | `items: [..]` |
+| `searchbar` | `placeholder` |
+| `input` / `textarea` | `label`, `placeholder`, `inputType`, `rows` |
+| `select` | `label`, `options: [..]` |
+| `checkbox` | `label`, `checked` |
+| `radio` | `label`, `options: [..]`, `name` |
+| `image` / `avatar` | `text`, `height` |
+| `badge` / `tag` | `text`, `variant` (badge: `success`/`warning`/`danger`/`info`) |
+| `button` | `text`, `variant` (`primary`/`secondary`/`ghost`/`destructive`), `linkTo` |
+| `alert` | `text`, `variant` |
+| `stat` | `label`, `value`, `delta`, `linkTo` (metric card) |
+| `tabs` | `items: [{label, linkTo}]`, `active` |
+| `table` | `columns: [..]`, `rows: [[..]]` |
+| `list` | `items: [{text, linkTo}]` |
+| `card` | `title`, `text`, `children: [elements]` |
+| `row` | `children: [elements]` (horizontal) |
+| `grid` | `cols`, `children: [elements]` (n columns) |
+
+`linkTo` (on `button`/`card`/`list` item/`stat`/`tabs` item) points at another screen id to make the
+prototype clickable. Use `row`/`grid`/`card.children` to build real layouts instead of a flat vertical
+stack — a dashboard is a `grid` of `stat`s plus a `table`, not five stacked cards.

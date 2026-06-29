@@ -61,26 +61,66 @@ let device=wf.device||"desktop";
 let current=wf.screens[0]?.id;
 const screenById=id=>wf.screens.find(s=>s.id===id);
 
+const badgeColor=v=>({success:"bg-emerald-100 text-emerald-700",warning:"bg-amber-100 text-amber-700",danger:"bg-red-100 text-red-700",info:"bg-violet-100 text-violet-700"})[v]||"bg-zinc-100 text-zinc-600";
+const alertCls=v=>({success:"border-emerald-200 bg-emerald-50 text-emerald-700",warning:"border-amber-200 bg-amber-50 text-amber-700",danger:"border-red-200 bg-red-50 text-red-700"})[v]||"border-violet-200 bg-violet-50 text-violet-700";
+
+// Render one element. shadcn-style vocabulary; row/grid/card recurse into children.
 function el(node){
+  if(!node||typeof node!=="object")return "";
+  const link=node.linkTo?` data-link="${esc(node.linkTo)}"`:"";
   switch(node.type){
-    case "heading": return `<h2 class="text-xl font-semibold mb-1">${esc(node.text)}</h2>`;
-    case "text":    return `<p class="text-sm text-zinc-500 mb-1">${esc(node.text)}</p>`;
-    case "divider": return `<hr class="my-3 border-zinc-200">`;
-    case "input":   return `<label class="block text-sm mb-3"><span class="text-zinc-600 mb-1 block">${esc(node.label||"")}</span>
-                      <input class="inp" type="${esc(node.inputType||'text')}" placeholder="${esc(node.placeholder||'')}"></label>`;
-    case "image":   return `<div class="rounded-lg bg-zinc-100 border border-dashed border-zinc-300 grid place-items-center text-zinc-400 text-xs mb-3" style="height:${parseInt(node.height,10)||120}px">${esc(node.text||'이미지')}</div>`;
-    case "button":  return `<button class="btn btn-${esc(node.variant||'secondary')} mb-2 mr-2" ${node.linkTo?`data-link="${esc(node.linkTo)}"`:""}>${esc(node.text)}</button>`;
-    case "list":    return `<ul class="divide-y divide-zinc-100 border border-zinc-200 rounded-lg mb-3">${
-                      (node.items||[]).map(it=>`<li class="px-3 py-2.5 text-sm flex justify-between items-center ${it.linkTo?'cursor-pointer hover:bg-zinc-50':''}" ${it.linkTo?`data-link="${esc(it.linkTo)}"`:""}><span>${esc(it.text)}</span>${it.linkTo?'<span class="text-zinc-300">›</span>':''}</li>`).join("")}</ul>`;
-    case "card":    return `<div class="card mb-3 ${node.linkTo?'cursor-pointer hover:border-zinc-300':''}" ${node.linkTo?`data-link="${esc(node.linkTo)}"`:""}>
-                      ${node.title?`<div class="font-medium mb-1">${esc(node.title)}</div>`:""}
-                      <div class="text-sm text-zinc-500">${esc(node.text||"")}</div></div>`;
-    default: return "";
+    case "heading":    return `<h2 class="text-xl font-semibold mb-2">${esc(node.text)}</h2>`;
+    case "subheading": return `<h3 class="text-sm font-semibold text-zinc-700 mt-2 mb-1">${esc(node.text)}</h3>`;
+    case "text":       return `<p class="text-sm text-zinc-500 mb-2">${esc(node.text)}</p>`;
+    case "divider":    return `<hr class="my-3 border-zinc-200">`;
+    case "spacer":     return `<div style="height:${parseInt(node.height,10)||16}px"></div>`;
+    case "breadcrumb": return `<div class="text-xs text-zinc-400 mb-3">${(node.items||[]).map(esc).join(' <span class="text-zinc-300">/</span> ')}</div>`;
+    case "searchbar":  return `<div class="relative mb-3"><input class="inp" style="padding-left:1.9rem" placeholder="${esc(node.placeholder||'검색')}"><span class="absolute left-2.5 top-1.5 text-zinc-400">⌕</span></div>`;
+    case "input":      return `<label class="block text-sm mb-3"><span class="text-zinc-600 mb-1 block">${esc(node.label||"")}</span><input class="inp" type="${esc(node.inputType||'text')}" placeholder="${esc(node.placeholder||'')}"></label>`;
+    case "textarea":   return `<label class="block text-sm mb-3"><span class="text-zinc-600 mb-1 block">${esc(node.label||"")}</span><textarea class="inp" style="height:auto;padding:.5rem .75rem" rows="${parseInt(node.rows,10)||3}" placeholder="${esc(node.placeholder||'')}"></textarea></label>`;
+    case "select":     return `<label class="block text-sm mb-3"><span class="text-zinc-600 mb-1 block">${esc(node.label||"")}</span><select class="inp">${(node.options||[]).map(o=>`<option>${esc(o)}</option>`).join("")}</select></label>`;
+    case "checkbox":   return `<label class="flex items-center gap-2 text-sm mb-2"><input type="checkbox" ${node.checked?"checked":""}><span>${esc(node.label||"")}</span></label>`;
+    case "radio":      return `<div class="mb-3 text-sm">${node.label?`<div class="text-zinc-600 mb-1">${esc(node.label)}</div>`:""}${(node.options||[]).map((o,i)=>`<label class="flex items-center gap-2 mb-1"><input type="radio" name="${esc(node.name||'r')}" ${i===0?"checked":""}><span>${esc(o)}</span></label>`).join("")}</div>`;
+    case "image":      return `<div class="rounded-lg bg-zinc-100 border border-dashed border-zinc-300 grid place-items-center text-zinc-400 text-xs mb-3" style="height:${parseInt(node.height,10)||120}px">${esc(node.text||'이미지')}</div>`;
+    case "avatar":     return `<div class="inline-flex items-center justify-center w-9 h-9 rounded-full bg-violet-100 text-violet-700 text-sm font-medium mb-2">${esc((node.text||'U').slice(0,2))}</div>`;
+    case "badge":      return `<span class="inline-block text-xs px-2 py-0.5 rounded-full ${badgeColor(node.variant)} mr-1 mb-1">${esc(node.text)}</span>`;
+    case "tag":        return `<span class="inline-block text-xs px-2 py-0.5 rounded border border-zinc-200 text-zinc-600 mr-1 mb-1">${esc(node.text)}</span>`;
+    case "button":     return `<button class="btn btn-${esc(node.variant||'secondary')} mb-2 mr-2"${link}>${esc(node.text)}</button>`;
+    case "alert":      return `<div class="text-sm rounded-lg border px-3 py-2 mb-3 ${alertCls(node.variant)}">${esc(node.text)}</div>`;
+    case "stat":       return `<div class="card mb-3${node.linkTo?' cursor-pointer hover:border-zinc-300':''}"${link}><div class="text-xs text-zinc-400">${esc(node.label||"")}</div><div class="text-2xl font-semibold mt-1">${esc(node.value??"")}</div>${node.delta?`<div class="text-xs mt-1 ${String(node.delta).trim().startsWith('-')?'text-red-600':'text-emerald-600'}">${esc(node.delta)}</div>`:""}</div>`;
+    case "tabs":       return `<div class="border-b border-zinc-200 mb-3 flex gap-4 text-sm">${(node.items||[]).map((t,i)=>{const o=(typeof t==="object")?t:{label:t};return `<span class="pb-2 -mb-px ${i===(node.active||0)?'border-b-2 border-zinc-900 font-medium':'text-zinc-400 cursor-pointer'}"${o.linkTo?` data-link="${esc(o.linkTo)}"`:""}>${esc(o.label)}</span>`;}).join("")}</div>`;
+    case "table":      return `<div class="border border-zinc-200 rounded-lg overflow-hidden mb-3"><table class="w-full text-sm"><thead class="bg-zinc-50 text-zinc-500"><tr>${(node.columns||[]).map(c=>`<th class="text-left font-medium px-3 py-2">${esc(c)}</th>`).join("")}</tr></thead><tbody>${(node.rows||[]).map(r=>`<tr class="border-t border-zinc-100">${(r||[]).map(c=>`<td class="px-3 py-2">${esc(c)}</td>`).join("")}</tr>`).join("")}</tbody></table></div>`;
+    case "list":       return `<ul class="divide-y divide-zinc-100 border border-zinc-200 rounded-lg mb-3">${(node.items||[]).map(it=>`<li class="px-3 py-2.5 text-sm flex justify-between items-center ${it.linkTo?'cursor-pointer hover:bg-zinc-50':''}"${it.linkTo?` data-link="${esc(it.linkTo)}"`:""}><span>${esc(it.text)}</span>${it.linkTo?'<span class="text-zinc-300">›</span>':''}</li>`).join("")}</ul>`;
+    case "card":       return `<div class="card mb-3${node.linkTo?' cursor-pointer hover:border-zinc-300':''}"${link}>${node.title?`<div class="font-medium mb-1">${esc(node.title)}</div>`:""}${node.text?`<div class="text-sm text-zinc-500">${esc(node.text)}</div>`:""}${Array.isArray(node.children)?`<div class="mt-2">${node.children.map(el).join("")}</div>`:""}</div>`;
+    case "row":        return `<div class="flex gap-3 mb-3 items-start flex-wrap">${(node.children||[]).map(c=>`<div class="flex-1" style="min-width:0">${el(c)}</div>`).join("")}</div>`;
+    case "grid":       return `<div class="grid gap-3 mb-3" style="grid-template-columns:repeat(${parseInt(node.cols,10)||2},minmax(0,1fr))">${(node.children||[]).map(el).join("")}</div>`;
+    default:           return "";
   }
 }
 
-function screenBody(s){
-  return `<div class="space-y-0">${(s.elements||[]).map(el).join("")}</div>`;
+function screenBody(s){ return (s.elements||[]).map(el).join(""); }
+
+// Per-screen chrome. layout ∈ app | centered | landing | blank (default app).
+function frame(s){
+  const layout=s.layout||"app", title=esc(s.title), body=screenBody(s);
+  const product=esc((PROJECT.meta&&PROJECT.meta.productName)||"");
+  const nav=wf.nav||[];
+  const topnav=`<div class="h-12 border-b border-zinc-200 flex items-center px-4 gap-4 shrink-0"><span class="w-5 h-5 rounded bg-violet-600"></span><span class="font-medium text-sm">${product}</span><div class="ml-auto flex gap-3 text-sm text-zinc-500">${nav.map(n=>`<span class="cursor-pointer hover:text-zinc-900" data-link="${esc(n.screenId)}">${esc(n.label)}</span>`).join("")}</div></div>`;
+  if(device==="mobile"){
+    const tab=layout==="app"?`<div class="h-14 border-t border-zinc-200 flex items-center justify-around shrink-0">${(nav.length?nav:wf.screens.slice(0,4).map(x=>({screenId:x.id,label:x.title}))).slice(0,5).map(n=>`<div class="flex flex-col items-center text-[10px] cursor-pointer ${n.screenId===current?'text-violet-600':'text-zinc-400'}" data-link="${esc(n.screenId)}"><span class="w-5 h-5 rounded ${n.screenId===current?'bg-violet-600':'bg-zinc-300'} mb-0.5"></span>${esc(n.label)}</div>`).join("")}</div>`:"";
+    const inner=layout==="centered"?`<div class="flex-1 overflow-auto px-4 grid place-items-center"><div class="w-full">${body}</div></div>`:`<div class="flex-1 overflow-auto px-4 pb-4">${body}</div>`;
+    return `<div class="bg-white rounded-[2rem] shadow-lg border-[6px] border-zinc-900 overflow-hidden" style="width:340px;height:680px;display:flex;flex-direction:column"><div class="h-10 flex items-center justify-center text-xs text-zinc-400 shrink-0">${title}</div>${inner}${tab}</div>`;
+  }
+  const W='style="width:960px;height:620px;display:flex;flex-direction:column"';
+  if(layout==="centered")
+    return `<div class="bg-zinc-50 rounded-xl shadow-lg overflow-hidden border border-zinc-200 grid place-items-center" ${W}><div class="card" style="width:100%;max-width:380px"><h1 class="text-lg font-semibold mb-4 text-center">${title}</h1>${body}</div></div>`;
+  if(layout==="landing")
+    return `<div class="bg-white rounded-xl shadow-lg overflow-hidden border border-zinc-200" ${W}>${topnav}<div class="flex-1 overflow-auto p-10">${body}</div></div>`;
+  if(layout==="blank")
+    return `<div class="bg-white rounded-xl shadow-lg overflow-auto border border-zinc-200 p-8" ${W}><h1 class="text-lg font-semibold mb-4">${title}</h1>${body}</div>`;
+  // app (default): top nav + sidebar + content
+  const side=`<div class="w-48 border-r border-zinc-200 p-3 space-y-1 shrink-0">${nav.map(n=>`<div class="px-2 py-1.5 rounded text-sm cursor-pointer ${n.screenId===current?'bg-zinc-100 font-medium':'text-zinc-500 hover:bg-zinc-50'}" data-link="${esc(n.screenId)}">${esc(n.label)}</div>`).join("")}</div>`;
+  return `<div class="bg-white rounded-xl shadow-lg overflow-hidden border border-zinc-200" ${W}>${topnav}<div class="flex flex-1 min-h-0">${side}<div class="flex-1 overflow-auto p-6"><h1 class="text-lg font-semibold mb-4">${title}</h1>${body}</div></div></div>`;
 }
 
 function render(){
@@ -95,37 +135,7 @@ function render(){
     sl.appendChild(li);
   });
   const s=screenById(current)||wf.screens[0]; if(!s){$("#frame").innerHTML='<div class="text-sm text-zinc-400 p-8">화면이 없습니다. 유저플로우의 페이지 노드에서 와이어프레임을 생성하세요.</div>';return;}
-  const nav=(wf.nav||[]);
-  if(device==="desktop"){
-    $("#frame").innerHTML=`
-    <div class="bg-white rounded-xl shadow-lg overflow-hidden border border-zinc-200" style="width:960px;height:620px;display:flex;flex-direction:column">
-      <div class="h-12 border-b border-zinc-200 flex items-center px-4 gap-4 shrink-0">
-        <span class="w-5 h-5 rounded bg-violet-600"></span>
-        <span class="font-medium text-sm">${esc((PROJECT.meta&&PROJECT.meta.productName)||"")}</span>
-        <div class="ml-auto flex gap-3 text-sm text-zinc-500">${nav.map(n=>`<span class="cursor-pointer hover:text-zinc-900" data-link="${esc(n.screenId)}">${esc(n.label)}</span>`).join("")}</div>
-      </div>
-      <div class="flex flex-1 min-h-0">
-        <div class="w-48 border-r border-zinc-200 p-3 space-y-1 shrink-0">
-          ${nav.map(n=>`<div class="px-2 py-1.5 rounded text-sm cursor-pointer ${n.screenId===current?'bg-zinc-100 font-medium':'text-zinc-500 hover:bg-zinc-50'}" data-link="${esc(n.screenId)}">${esc(n.label)}</div>`).join("")}
-        </div>
-        <div class="flex-1 overflow-auto p-6">
-          <h1 class="text-lg font-semibold mb-4 text-zinc-400">${esc(s.title)}</h1>
-          ${screenBody(s)}
-        </div>
-      </div>
-    </div>`;
-  } else {
-    $("#frame").innerHTML=`
-    <div class="bg-white rounded-[2rem] shadow-lg border-[6px] border-zinc-900 overflow-hidden" style="width:340px;height:680px;display:flex;flex-direction:column">
-      <div class="h-10 flex items-center justify-center text-xs text-zinc-400 shrink-0">${esc(s.title)}</div>
-      <div class="flex-1 overflow-auto px-4 pb-4">${screenBody(s)}</div>
-      <div class="h-14 border-t border-zinc-200 flex items-center justify-around shrink-0">
-        ${(nav.length?nav:wf.screens.slice(0,4).map(x=>({screenId:x.id,label:x.title}))).slice(0,5).map(n=>`
-          <div class="flex flex-col items-center text-[10px] cursor-pointer ${n.screenId===current?'text-violet-600':'text-zinc-400'}" data-link="${esc(n.screenId)}">
-            <span class="w-5 h-5 rounded ${n.screenId===current?'bg-violet-600':'bg-zinc-300'} mb-0.5"></span>${esc(n.label)}</div>`).join("")}
-      </div>
-    </div>`;
-  }
+  $("#frame").innerHTML=frame(s);
   // wire up navigation
   $("#frame").querySelectorAll("[data-link]").forEach(b=>b.onclick=e=>{
     e.stopPropagation();const t=b.getAttribute("data-link");

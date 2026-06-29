@@ -96,15 +96,23 @@ edges, deletable sections/versions, and JSON import/export.
 
 ### Stage 4 — Wireframe (clickable prototype)
 
-Turns each `page` node into a screen of simple UI elements with screen-to-screen navigation.
-Single-file HTML, Tailwind CDN. The built-in look is a neutral shadcn-style baseline, but prefer a
-frontend design skill when available (see step 2). Desktop layout = top nav + side menu; mobile
-layout = bottom tab bar. The prototype is clickable (button/card/list `linkTo` navigates).
+Turns each `page` node into a screen of UI elements with screen-to-screen navigation. Single-file
+HTML, Tailwind CDN, shadcn-style components. Each screen picks its own `layout`, so the prototype is
+NOT one uniform dashboard. The prototype is clickable (`button`/`card`/`list`/`stat`/`tabs` `linkTo`
+navigates).
 
 1. Pick a `userflow` version (`userflowVersionId`) and `device`. For each `page`/`sectionTop` node,
-   define a screen with `elements` (heading/text/button/input/image/card/list/divider) and set
-   `linkTo` on interactive elements using userflow edges as the guide. Add `nav` entries for the menu.
-   Write `wireframe` per the schema.
+   define a screen and **choose the right `layout` and components for that screen's content** — this
+   is the difference between varied, content-fit wireframes and a wall of identical dashboards. See
+   the schema's "screen.layout" and element-vocabulary tables; in short:
+   - Set `layout` per screen: `centered` for login/signup/onboarding/payment forms, `landing` for a
+     marketing/entry page, `app` for in-product screens (dashboard, list, detail, settings), `blank`
+     for splash. Do not default everything to `app`.
+   - Use the full element vocabulary that matches the plan: `stat`/`grid`/`table` for a dashboard,
+     `searchbar`/`tabs`/`list` for a browse screen, `input`/`select`/`checkbox`/`textarea` for forms,
+     `row`/`grid`/`card.children` to build real layouts instead of a flat vertical stack.
+   - Set `linkTo` on interactive elements using userflow edges as the guide; add `nav` entries for the
+     in-app menu (used by `app`/`landing` layouts). Write `wireframe` per the schema.
 2. **Optionally apply a frontend design skill — only if your runtime provides one.** This is an
    enhancement, not a requirement, and it is runtime-specific. Whether such a capability exists, and
    how you invoke it, depends on where this skill runs: in Claude Code it might be a skill like

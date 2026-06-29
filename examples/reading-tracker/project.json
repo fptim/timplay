@@ -128,22 +128,53 @@
     ],
     "screens": [
       {
-        "id": "n-2", "title": "홈 / 서재",
+        "id": "w-landing", "title": "랜딩", "layout": "landing",
         "elements": [
-          { "type": "heading", "text": "내 서재" },
-          { "type": "text", "text": "올해 읽은 책 12권 · 진행 중 2권" },
-          { "type": "button", "text": "+ 책 추가", "variant": "primary", "linkTo": "n-3" },
-          { "type": "list", "items": [
-            { "text": "데미안 · 80%", "linkTo": "n-4" },
-            { "text": "사피엔스 · 35%", "linkTo": "n-4" }
+          { "type": "heading", "text": "읽은 책, 1분이면 기록 끝" },
+          { "type": "text", "text": "ISBN·제목 검색으로 표지와 저자를 자동 입력. 별점과 한 줄 감상만 남기세요." },
+          { "type": "row", "children": [
+            { "type": "button", "text": "무료로 시작하기", "variant": "primary", "linkTo": "w-login" },
+            { "type": "button", "text": "둘러보기", "variant": "ghost", "linkTo": "n-2" }
           ] }
         ]
       },
       {
-        "id": "n-3", "title": "책 검색",
+        "id": "w-login", "title": "로그인", "layout": "centered",
         "elements": [
-          { "type": "heading", "text": "책 검색" },
-          { "type": "input", "label": "제목 · 저자 · ISBN", "placeholder": "예: 데미안" },
+          { "type": "input", "label": "이메일", "placeholder": "you@example.com" },
+          { "type": "input", "label": "비밀번호", "inputType": "password" },
+          { "type": "button", "text": "로그인", "variant": "primary", "linkTo": "n-2" },
+          { "type": "divider" },
+          { "type": "button", "text": "회원가입", "variant": "ghost", "linkTo": "n-2" }
+        ]
+      },
+      {
+        "id": "n-2", "title": "홈 / 서재", "layout": "app",
+        "elements": [
+          { "type": "heading", "text": "내 서재" },
+          { "type": "grid", "cols": 3, "children": [
+            { "type": "stat", "label": "올해 읽은 책", "value": "12권", "delta": "+3" },
+            { "type": "stat", "label": "진행 중", "value": "2권" },
+            { "type": "stat", "label": "평균 별점", "value": "4.2" }
+          ] },
+          { "type": "row", "children": [
+            { "type": "searchbar", "placeholder": "내 책 검색" },
+            { "type": "button", "text": "+ 책 추가", "variant": "primary", "linkTo": "n-3" }
+          ] },
+          { "type": "subheading", "text": "최근 기록" },
+          { "type": "table",
+            "columns": ["제목", "저자", "진행률", "별점"],
+            "rows": [
+              ["데미안", "헤르만 헤세", "80%", "★★★★☆"],
+              ["사피엔스", "유발 하라리", "35%", "★★★★★"]
+            ] }
+        ]
+      },
+      {
+        "id": "n-3", "title": "책 검색", "layout": "app",
+        "elements": [
+          { "type": "searchbar", "placeholder": "제목 · 저자 · ISBN (예: 데미안)" },
+          { "type": "tabs", "items": ["전체", "소설", "비소설"], "active": 0 },
           { "type": "list", "items": [
             { "text": "데미안 — 헤르만 헤세", "linkTo": "n-4" },
             { "text": "수레바퀴 아래서 — 헤르만 헤세", "linkTo": "n-4" }
@@ -151,14 +182,22 @@
         ]
       },
       {
-        "id": "n-4", "title": "책 상세 / 기록",
+        "id": "n-4", "title": "책 상세 / 기록", "layout": "app",
         "elements": [
-          { "type": "heading", "text": "데미안" },
-          { "type": "text", "text": "헤르만 헤세 · 1919" },
-          { "type": "image", "text": "표지", "height": 140 },
-          { "type": "input", "label": "한 줄 감상", "placeholder": "기억하고 싶은 문장이나 느낌" },
-          { "type": "button", "text": "기록 저장", "variant": "primary", "linkTo": "n-2" },
-          { "type": "button", "text": "취소", "variant": "ghost", "linkTo": "n-2" }
+          { "type": "breadcrumb", "items": ["서재", "검색", "데미안"] },
+          { "type": "row", "children": [
+            { "type": "image", "text": "표지", "height": 160 },
+            { "type": "card", "title": "데미안", "children": [
+              { "type": "text", "text": "헤르만 헤세 · 1919" },
+              { "type": "badge", "text": "소설", "variant": "info" },
+              { "type": "badge", "text": "읽는 중", "variant": "warning" }
+            ] }
+          ] },
+          { "type": "textarea", "label": "한 줄 감상", "placeholder": "기억하고 싶은 문장이나 느낌", "rows": 3 },
+          { "type": "row", "children": [
+            { "type": "button", "text": "기록 저장", "variant": "primary", "linkTo": "n-2" },
+            { "type": "button", "text": "취소", "variant": "ghost", "linkTo": "n-2" }
+          ] }
         ]
       }
     ]
